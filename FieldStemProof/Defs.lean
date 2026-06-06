@@ -30,6 +30,14 @@ variable {I : Type*} {R : Type*}
 /-- A qubit tensor on legs indexed by `I`: an array of entries indexed by a bit per leg. -/
 abbrev QTensor (I R : Type*) := (I → Fin 2) → R
 
+/-- The **universal qubit tensor**: every amplitude is its own free parameter (one polynomial
+variable per configuration). Any concrete tensor over `K` is an evaluation of this one, so a
+property holding *generically* for `genericTensor` is exactly the "random / generic tensor"
+statement — e.g. no Schmidt-rank collapse for a generic tensor. -/
+noncomputable def genericTensor (I K : Type*) [CommSemiring K] :
+    QTensor I (MvPolynomial (I → Fin 2) K) :=
+  fun x => MvPolynomial.X x
+
 variable (p : I → Prop) [DecidablePred p]
 
 /-- Reshaping a tensor's legs across the cut `p`: a bit-assignment to all legs is the same

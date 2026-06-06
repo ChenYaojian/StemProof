@@ -156,4 +156,38 @@ theorem generic_full_schmidt_of_realizes [Nontrivial K]
   rw [hreal, det_squareFlatten_bellWitness]
   exact one_ne_zero
 
+/-! ### Generic tensors have full Schmidt rank (no rank collapse)
+
+Specializing to the universal tensor `genericTensor`, whose entries are independent
+parameters. The max-entangling witness is the evaluation at `v₀ = bellWitness`, so the
+realizability hypothesis holds *by construction*, and we obtain unconditionally: a generic
+qubit tensor has full Schmidt rank across every balanced cut, with rank collapse confined to
+a proper subvariety. This is the "generic ⇒ no rank collapse" core of Lemma B for
+*unconstrained* tensors.
+
+The remaining circuit-specific content: an intermediate tensor of an actual random circuit is
+NOT unconstrained — its entries are polynomials in the *local gate* parameters. That this
+constrained subfamily still avoids rank collapse is the realizability question:
+worst-case it does (a SWAP/Bell gate layer across the cut realizes `bellWitness`); average-case
+over Haar gates above the depth threshold is Conjecture C (open). -/
+
+omit [DecidableEq I] in
+/-- The universal tensor realizes the max-entangling witness at the parameter point
+`v₀ = bellWitness`. -/
+theorem genericTensor_realizes [Nontrivial K]
+    (e : ({i // p i} → Fin 2) ≃ ({i // ¬ p i} → Fin 2)) :
+    (fun x => eval (bellWitness p e : QTensor I K) (genericTensor I K x)) = bellWitness p e := by
+  funext x
+  rw [genericTensor, eval_X]
+/-- **Generic no-rank-collapse (Lemma B for a generic tensor).**
+A generic qubit tensor has full Schmidt rank across the balanced cut `p`: the determinant of
+its square flattening is a nonzero polynomial in the tensor entries, and the flattening is
+full rank for all entry-values outside that polynomial's proper vanishing subvariety. -/
+theorem generic_tensor_full_schmidt [Nontrivial K]
+    (e : ({i // p i} → Fin 2) ≃ ({i // ¬ p i} → Fin 2)) :
+    (squareFlatten p e (genericTensor I K)).det ≠ 0 ∧
+      ∀ v, eval v (squareFlatten p e (genericTensor I K)).det ≠ 0 →
+        (squareFlatten p e (fun x => eval v (genericTensor I K x))).det ≠ 0 :=
+  generic_full_schmidt_of_realizes p e (genericTensor I K) (genericTensor_realizes p e)
+
 end FieldStemProof
