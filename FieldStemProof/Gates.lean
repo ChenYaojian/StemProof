@@ -84,9 +84,10 @@ theorem sqrtY_nonsingular : Nonsingular sqrtY := by
 
 /-! ## Two-qubit gates
 
-Indexed by `Fin 4` (computational basis `00, 01, 10, 11`). Permutation gates (`SWAP`, `CNOT`)
-and the diagonal gate (`CZ`) get clean `det ≠ 0` proofs; the native continuous entanglers
-(`iSWAP`, `√iSWAP`, `fSim`) are defined here, with nonsingularity to follow. -/
+Indexed by `Fin 4` (computational basis `00, 01, 10, 11`). All gates below are proven
+nonsingular: permutation gates (`SWAP`, `CNOT`) via `det_permutation`, the diagonal gate
+(`CZ`) via `det_diagonal`, and the native continuous entanglers (`iSWAP`, `√iSWAP`, `fSim`)
+by Laplace expansion (`det_succ_row_zero`); `fSim` additionally uses `sin² + cos² = 1`. -/
 
 /-- Any permutation matrix is nonsingular: its determinant is `±1`. -/
 theorem permMatrix_nonsingular {n : Type*} [Fintype n] [DecidableEq n] (σ : Equiv.Perm n) :
@@ -129,5 +130,30 @@ theorem CZ_nonsingular : Nonsingular CZ := by
 theorem SWAP_nonsingular : Nonsingular SWAP := permMatrix_nonsingular _
 
 theorem CNOT_nonsingular : Nonsingular CNOT := permMatrix_nonsingular _
+
+theorem iSWAP_nonsingular : Nonsingular iSWAP := by
+  rw [Nonsingular, iSWAP, det_succ_row_zero]
+  simp [Fin.sum_univ_four, det_fin_three]
+
+theorem sqrtiSWAP_nonsingular : Nonsingular sqrtiSWAP := by
+  rw [Nonsingular, sqrtiSWAP, det_succ_row_zero]
+  have h2 : (Real.sqrt 2 : ℂ) ≠ 0 := by
+    rw [Complex.ofReal_ne_zero]; exact Real.sqrt_ne_zero'.mpr (by norm_num)
+  simp only [Fin.sum_univ_four, det_fin_three]
+  field_simp
+  simp [Complex.ext_iff]
+
+theorem fSim_nonsingular (θ φ : ℝ) : Nonsingular (fSim θ φ) := by
+  rw [Nonsingular, fSim, det_succ_row_zero]
+  simp [Fin.sum_univ_four, det_fin_three]
+  have e : cos (θ : ℂ) * cos (θ : ℂ) - I * sin (θ : ℂ) * (I * sin (θ : ℂ)) = 1 := by
+    have hpyth : sin (θ : ℂ) ^ 2 + cos (θ : ℂ) ^ 2 = 1 := Complex.sin_sq_add_cos_sq _
+    have hI : I * sin (θ : ℂ) * (I * sin (θ : ℂ)) = -(sin (θ : ℂ) * sin (θ : ℂ)) := by
+      rw [show I * sin (θ : ℂ) * (I * sin (θ : ℂ)) = (I * I) * (sin (θ : ℂ) * sin (θ : ℂ)) by ring,
+        Complex.I_mul_I]
+      ring
+    rw [hI]; linear_combination hpyth
+  rw [← sub_mul, e, one_mul]
+  exact Complex.exp_ne_zero _
 
 end FieldStemProof.Gates
