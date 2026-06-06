@@ -190,4 +190,19 @@ theorem generic_tensor_full_schmidt [Nontrivial K]
         (squareFlatten p e (fun x => eval v (genericTensor I K x))).det ≠ 0 :=
   generic_full_schmidt_of_realizes p e (genericTensor I K) (genericTensor_realizes p e)
 
+/-! ### Worst-case: any nonsingular operator realizes full Schmidt rank
+
+Since flattening is surjective onto matrices (`squareFlatten_tensorOfMatrix`), *any* nonsingular
+cut-matrix `M` is realized as a full-rank flattening — `det = 0` cannot occur. In particular
+`M` may be a (reindexed) entangling gate from `Gates`, giving an explicit worst-case circuit
+state with maximal Schmidt rank `2^k` across the cut. This discharges Lemma B's precondition
+constructively (worst-case), independent of the average-case Conjecture C. -/
+
+/-- A nonsingular cut-matrix `M` is realized as a full-rank flattening of an explicit tensor. -/
+theorem nonsingular_realized
+    (e : ({i // p i} → Fin 2) ≃ ({i // ¬ p i} → Fin 2))
+    (M : Matrix ({i // p i} → Fin 2) ({i // p i} → Fin 2) K) (hM : M.det ≠ 0) :
+    (squareFlatten p e (tensorOfMatrix p e M)).det ≠ 0 := by
+  rw [squareFlatten_tensorOfMatrix]; exact hM
+
 end FieldStemProof

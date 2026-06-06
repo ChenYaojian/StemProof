@@ -75,6 +75,23 @@ theorem squareFlatten_map {S : Type*} (σ : ({i // p i} → Fin 2) ≃ ({i // ¬
     (T : QTensor I S) (f : S → R) :
     (squareFlatten p σ T).map f = squareFlatten p σ (fun x => f (T x)) := rfl
 
+/-- **Flattening is surjective onto matrices.** Given any square matrix `M` over the
+`p`-side configurations and a side-bijection `e`, the tensor `tensorOfMatrix p e M` flattens
+back to exactly `M` (see `squareFlatten_tensorOfMatrix`). So every matrix — in particular
+every *nonsingular* one built from entangling gates — arises as a cut flattening, which is the
+worst-case route to full Schmidt rank. -/
+def tensorOfMatrix (e : ({i // p i} → Fin 2) ≃ ({i // ¬ p i} → Fin 2))
+    (M : Matrix ({i // p i} → Fin 2) ({i // p i} → Fin 2) R) : QTensor I R :=
+  fun x => M (cutEquiv p x).1 (e.symm (cutEquiv p x).2)
+
+@[simp] theorem squareFlatten_tensorOfMatrix
+    (e : ({i // p i} → Fin 2) ≃ ({i // ¬ p i} → Fin 2))
+    (M : Matrix ({i // p i} → Fin 2) ({i // p i} → Fin 2) R) :
+    squareFlatten p e (tensorOfMatrix p e M) = M := by
+  ext a a'
+  simp [squareFlatten, flatten, tensorOfMatrix, Matrix.submatrix_apply,
+    Equiv.apply_symm_apply, Equiv.symm_apply_apply]
+
 section Witness
 variable [Fintype I] [Zero R] [One R]
 
