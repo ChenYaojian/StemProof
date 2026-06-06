@@ -84,4 +84,39 @@ theorem exists_nonsingular_of_det_ne_zero {M : Matrix n n (MvPolynomial σ K)}
 
 end InfiniteDomain
 
+/-! ### Bridge: genericity engine acting on tensor flattenings
+
+Instantiating `generic_nonsingular` at the square flattening of a parameter-dependent qubit
+tensor across a balanced cut. This is the form Lemma B actually needs: the gate entries are
+the parameters, the tensor is an intermediate contraction result, and `det ≠ 0` of the
+square flattening is "full Schmidt rank across the cut" (no rank collapse). -/
+
+variable {ι : Type*} [Fintype I] [DecidableEq I] (p : I → Prop) [DecidablePred p]
+
+/-- Evaluation commutes with the determinant of a square tensor flattening. -/
+theorem det_squareFlatten_map
+    (e : ({i // p i} → Fin 2) ≃ ({i // ¬ p i} → Fin 2)) (T : QTensor I (MvPolynomial ι K))
+    (v : ι → K) :
+    eval v (squareFlatten p e T).det = (squareFlatten p e (fun x => eval v (T x))).det := by
+  rw [det_map_eval, squareFlatten_map]
+
+/-- **Generic full Schmidt rank (Lemma B at a balanced cut).**
+If the square flattening of a parameter-dependent tensor across the balanced cut `p` is full
+rank (`det ≠ 0`) at a single parameter point `v₀` (a max-entangling witness), then:
+
+* `det (squareFlatten p e T)` is a *nonzero* polynomial in the gate parameters, and
+* for every parameter `v` outside that polynomial's proper vanishing subvariety, the
+  evaluated tensor's flattening is full rank — generic no-rank-collapse across the cut. -/
+theorem generic_full_schmidt
+    (e : ({i // p i} → Fin 2) ≃ ({i // ¬ p i} → Fin 2)) (T : QTensor I (MvPolynomial ι K))
+    {v₀ : ι → K} (h : (squareFlatten p e (fun x => eval v₀ (T x))).det ≠ 0) :
+    (squareFlatten p e T).det ≠ 0 ∧
+      ∀ v, eval v (squareFlatten p e T).det ≠ 0 →
+        (squareFlatten p e (fun x => eval v (T x))).det ≠ 0 := by
+  have h' : ((squareFlatten p e T).map (eval v₀)).det ≠ 0 := by rwa [squareFlatten_map]
+  obtain ⟨hne, hgen⟩ := generic_nonsingular (squareFlatten p e T) h'
+  refine ⟨hne, fun v hv => ?_⟩
+  have hv' := hgen v hv
+  rwa [squareFlatten_map] at hv'
+
 end FieldStemProof

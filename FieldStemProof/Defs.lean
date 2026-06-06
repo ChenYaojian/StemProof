@@ -12,13 +12,59 @@ Formalizes the objects the main results quantify over:
 * `1.4`  stem / caterpillar contraction tree and pathwidth
 * `1.6`  minimum transverse separator (cut)
 
-Built on Mathlib's `SimpleGraph`. Treewidth/pathwidth are taken from Mathlib where
-available, otherwise defined here against the line graph.
+Built on Mathlib's `Matrix` / `Equiv` / `SimpleGraph`. This file currently formalizes the
+**flattening across a cut** (spec §1.6): a qubit tensor reshaped into a matrix whose row /
+column indices are the two sides of a bipartition of its legs. Its rank is the Schmidt rank
+across the cut, and full rank at the bottleneck is exactly "no rank collapse" — the quantity
+Lemma B controls. Evaluation commutes with flattening (`flatten_map`), which is the hook
+that lets the genericity engine in `LemmaB` act on flattenings.
 -/
-import Mathlib.Combinatorics.SimpleGraph.Basic
+import Mathlib
 
 namespace FieldStemProof
 
--- Definitions to be added here.
+open MvPolynomial
+
+variable {I : Type*} {R : Type*}
+
+/-- A qubit tensor on legs indexed by `I`: an array of entries indexed by a bit per leg. -/
+abbrev QTensor (I R : Type*) := (I → Fin 2) → R
+
+variable (p : I → Prop) [DecidablePred p]
+
+/-- Reshaping a tensor's legs across the cut `p`: a bit-assignment to all legs is the same
+data as a bit-assignment to the `p`-side together with one to the `¬p`-side. -/
+def cutEquiv : (I → Fin 2) ≃ (({i // p i} → Fin 2) × ({i // ¬ p i} → Fin 2)) :=
+  (Equiv.arrowCongr (Equiv.sumCompl p).symm (Equiv.refl (Fin 2))).trans
+    (Equiv.sumArrowEquivProdArrow _ _ _)
+
+/-- **Flattening across a cut** (spec §1.6). The tensor `T` reshaped into a matrix with rows
+indexed by bit-assignments to the `p`-side and columns by bit-assignments to the `¬p`-side. -/
+def flatten (T : QTensor I R) :
+    Matrix ({i // p i} → Fin 2) ({i // ¬ p i} → Fin 2) R :=
+  Matrix.of fun a b => T ((cutEquiv p).symm (a, b))
+
+@[simp] theorem flatten_apply (T : QTensor I R) (a b) :
+    flatten p T a b = T ((cutEquiv p).symm (a, b)) := rfl
+
+/-- Evaluation/relabelling commutes with flattening: flattening then applying `f` entrywise
+equals applying `f` to the tensor then flattening. This transports the genericity engine
+(`LemmaB.generic_nonsingular`, stated for `eval v`) onto flattenings. -/
+theorem flatten_map {S : Type*} (T : QTensor I S) (f : S → R) :
+    (flatten p T).map f = flatten p (fun x => f (T x)) := rfl
+
+/-- **Square flattening at a balanced cut.** When the two sides of the cut carry the same
+number of bit-configurations — witnessed by a bijection `σ` between them — the flattening
+becomes a square matrix, so its determinant (hence nonsingularity = full Schmidt rank) is
+available. `σ` exists iff `|p-side| = |¬p-side|`, i.e. the bottleneck balanced cut. -/
+def squareFlatten (σ : ({i // p i} → Fin 2) ≃ ({i // ¬ p i} → Fin 2)) (T : QTensor I R) :
+    Matrix ({i // p i} → Fin 2) ({i // p i} → Fin 2) R :=
+  (flatten p T).submatrix id σ
+
+/-- Entrywise relabelling commutes with the square flattening (carries `flatten_map`
+through the reindexing), transporting the genericity engine onto square flattenings. -/
+theorem squareFlatten_map {S : Type*} (σ : ({i // p i} → Fin 2) ≃ ({i // ¬ p i} → Fin 2))
+    (T : QTensor I S) (f : S → R) :
+    (squareFlatten p σ T).map f = squareFlatten p σ (fun x => f (T x)) := rfl
 
 end FieldStemProof
