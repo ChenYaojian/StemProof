@@ -1,0 +1,14 @@
+/-
+# FieldStemProof
+
+Formalization of the stem-structure lower bound for contracting tensor networks of
+random quantum circuits. See `docs/spec.md` for the full statement and proof roadmap.
+
+Layered targets:
+* `FieldStemProof.Defs`     — definitions (spec §1)
+* `FieldStemProof.TheoremA` — existence of an optimal stem path (spec §3, Theorem A)
+* `FieldStemProof.LemmaB`   — generic full-rank tightness (spec §3, Lemma B) — first goal
+-/
+import FieldStemProof.Defs
+import FieldStemProof.TheoremA
+import FieldStemProof.LemmaB
