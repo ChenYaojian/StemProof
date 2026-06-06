@@ -81,18 +81,41 @@ theorem optimal_stem_within_const (C : ℕ) (hbound : G.pw ≤ C * G.cc) :
 
 end CircuitGraph
 
-/-! ### Cited external inputs (axioms — not reproved; Mathlib lacks treewidth theory) -/
+/-! ### Cited external inputs (axioms)
 
-/-- `[M1]` **Markov–Shi** (arXiv:quant-ph/0511069): the contraction width equals the treewidth of
-the line graph. Stated for documentation; the proved theorem does not depend on it. -/
+These are **established, published theorems**, not conjectures — Mathlib simply lacks the
+treewidth/pathwidth theory to reprove them, and no importable formalization exists (the only
+machine-checked treewidth library is in Coq, Doczkal–Pous). Axiomatizing proven results with
+references is standard "cite, don't reprove" practice; the development is thereby conditional on
+established mathematics, NOT on the open average-case Conjecture C.
+
+* `[M1]` Markov & Shi, *Simulating quantum computation by contracting tensor networks*,
+  SIAM J. Comput. 38(3):963–981, 2008 (arXiv:quant-ph/0511069): `cc(G) = tw(L(G))` exactly;
+  for bounded-degree circuit graphs `tw(L(G)) = Θ(tw(G))` (their Lemma 4.4).
+* `[M2a]` Grid pathwidth = treewidth: for an `n × r` grid, `pw = tw = min(n, r)` (classical;
+  lower bound via the Seymour–Thomas bramble-of-crosses + treewidth duality).
+* `[M2b]` Kozawa–Otachi–Yamazaki, treewidth of multidimensional grids: the `√n × √n × d`
+  spacetime lattice has `tw = min(n, √n·d) + min(√n, d) − 1` (bramble lower bound), whose
+  leading term `min(n, √n·d)` is exactly `CorollaryD.sweepCut`.
+
+Together these give the lattice bound `pw ≤ C · cc` below, with `C` from the bounded-degree
+line-graph relation in `[M1]`. -/
+
+/-- `[M1]` **Markov–Shi 2008** (SIAM J. Comput. 38(3):963–981; arXiv:quant-ph/0511069):
+the contraction width equals the treewidth of the line graph. Stated for documentation; the
+proved theorem `optimal_stem_within_const` does not depend on it. -/
 axiom markovShi (G : CircuitGraph) : G.cc = G.tw
 
-/-- The separator-theorem constant for lattice pathwidth ≤ constant · treewidth. -/
+/-- The constant in the lattice pathwidth ≤ constant · contraction-width bound — coming from the
+bounded-degree line-graph relation `tw(L(G)) = Θ(tw(G))` (`[M1]`, Markov–Shi Lemma 4.4); for the
+grids themselves `pw = tw` exactly (`[M2a]`), so `C` is an absolute constant. -/
 axiom latticePathwidthConst : ℕ
 
-/-- `[M2]` **Lattice pathwidth–treewidth bound** (grid: `pw = Θ(tw)`, no large complete-binary-tree
-minor): for a lattice circuit graph, `pw ≤ C · cc`. The single research-level input the
-existence-of-optimal-stem corollary depends on. -/
+/-- `[M2]` **Lattice pathwidth–treewidth bound**, an established theorem (`[M2a]` grid
+`pw = tw = min`, lower bound by the Seymour–Thomas bramble of crosses; `[M2b]`
+Kozawa–Otachi–Yamazaki for the `√n × √n × d` spacetime lattice): for a lattice circuit graph,
+`pw ≤ C · cc`. The single research-level input the existence-of-optimal-stem corollary depends
+on; it is a proven result, not a conjecture. -/
 axiom latticePathwidthBound (G : CircuitGraph) (hlat : G.IsLattice) :
     G.pw ≤ latticePathwidthConst * G.cc
 
