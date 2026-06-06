@@ -67,4 +67,26 @@ theorem squareFlatten_map {S : Type*} (σ : ({i // p i} → Fin 2) ≃ ({i // ¬
     (T : QTensor I S) (f : S → R) :
     (squareFlatten p σ T).map f = squareFlatten p σ (fun x => f (T x)) := rfl
 
+section Witness
+variable [Fintype I] [Zero R] [One R]
+
+/-- The maximally-entangling ("Bell"/identity) witness across the balanced cut `p` paired by
+`e`: the tensor whose entry is `1` exactly when the `¬p`-side bits are the `e`-image of the
+`p`-side bits, and `0` otherwise. Its flattening is the identity matrix — the extreme case of
+full Schmidt rank, i.e. a maximally entangled state across the cut. -/
+def bellWitness (e : ({i // p i} → Fin 2) ≃ ({i // ¬ p i} → Fin 2)) : QTensor I R :=
+  fun x => if (cutEquiv p x).2 = e (cutEquiv p x).1 then (1 : R) else 0
+
+/-- The Bell witness flattens to the **identity matrix**: full Schmidt rank by construction. -/
+theorem squareFlatten_bellWitness (e : ({i // p i} → Fin 2) ≃ ({i // ¬ p i} → Fin 2)) :
+    squareFlatten p e (bellWitness p e : QTensor I R) = 1 := by
+  ext a a'
+  simp only [squareFlatten, Matrix.submatrix_apply, id_eq, flatten_apply, bellWitness,
+    Equiv.apply_symm_apply, e.injective.eq_iff, Matrix.one_apply]
+  by_cases h : a' = a
+  · rw [if_pos h, if_pos h.symm]
+  · rw [if_neg h, if_neg (fun he => h he.symm)]
+
+end Witness
+
 end FieldStemProof

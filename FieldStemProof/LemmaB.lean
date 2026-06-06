@@ -119,4 +119,41 @@ theorem generic_full_schmidt
   have hv' := hgen v hv
   rwa [squareFlatten_map] at hv'
 
+/-! ### The max-entangling witness discharges the hypothesis
+
+`generic_full_schmidt` is conditional on a single parameter point achieving full rank. The
+`bellWitness` (identity flattening) shows that condition is *satisfiable*: full Schmidt rank
+across a balanced cut is achievable, so the genericity engine is non-vacuous. What remains
+(needs the gate/`TN(C)` model) is to show a real random circuit *realizes* the witness at
+some gate parameter `v₀`. -/
+
+/-- The max-entangling witness has full Schmidt rank: its square flattening has determinant
+`1`. -/
+theorem det_squareFlatten_bellWitness [Nontrivial K]
+    (e : ({i // p i} → Fin 2) ≃ ({i // ¬ p i} → Fin 2)) :
+    (squareFlatten p e (bellWitness p e : QTensor I K)).det = 1 := by
+  rw [squareFlatten_bellWitness, Matrix.det_one]
+
+/-- Full-rank flattenings across a balanced cut exist — the hypothesis of
+`generic_full_schmidt` is satisfiable, not vacuous. -/
+theorem exists_full_schmidt [Nontrivial K]
+    (e : ({i // p i} → Fin 2) ≃ ({i // ¬ p i} → Fin 2)) :
+    ∃ T : QTensor I K, (squareFlatten p e T).det ≠ 0 :=
+  ⟨bellWitness p e, by rw [det_squareFlatten_bellWitness]; exact one_ne_zero⟩
+
+/-- **Lemma B, precondition discharged by realizability.**
+If a parameter family `T` *realizes* the max-entangling witness at some gate parameter `v₀`
+(i.e. `eval v₀ ∘ T` is the Bell witness across the cut), then full Schmidt rank across the
+cut is generic: `det (squareFlatten p e T)` is a nonzero polynomial and the evaluated
+flattening is full rank off its proper vanishing subvariety. -/
+theorem generic_full_schmidt_of_realizes [Nontrivial K]
+    (e : ({i // p i} → Fin 2) ≃ ({i // ¬ p i} → Fin 2)) (T : QTensor I (MvPolynomial ι K))
+    {v₀ : ι → K} (hreal : (fun x => eval v₀ (T x)) = bellWitness p e) :
+    (squareFlatten p e T).det ≠ 0 ∧
+      ∀ v, eval v (squareFlatten p e T).det ≠ 0 →
+        (squareFlatten p e (fun x => eval v (T x))).det ≠ 0 := by
+  refine generic_full_schmidt p e T (v₀ := v₀) ?_
+  rw [hreal, det_squareFlatten_bellWitness]
+  exact one_ne_zero
+
 end FieldStemProof
