@@ -14,6 +14,7 @@ Layered targets:
 * `FieldStemProof.Rigidity` — Contraction Rigidity: the structural theorem (reframes Conj. C)
 * `FieldStemProof.Matching` — Kronecker routing: a k-matching of entanglers ⇒ full rank 2^k
 * `FieldStemProof.Lattice` — balanced sweep cut ⇒ matching ⇒ contraction rigid (closes C.2 gap)
+* `FieldStemProof.Sycamore` — end-to-end Sycamore-53 lower bound (cut + cost + stem + rigidity)
 -/
 import FieldStemProof.Defs
 import FieldStemProof.Gates
@@ -24,3 +25,4 @@ import FieldStemProof.Worstcase
 import FieldStemProof.Matching
 import FieldStemProof.Rigidity
 import FieldStemProof.Lattice
+import FieldStemProof.Sycamore
