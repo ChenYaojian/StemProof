@@ -143,4 +143,55 @@ theorem cross_order_ge {k : ℕ} (hk : 0 < k) : k ≤ 2 * order (cross k) := by
   rw [order, ← hHcard]
   exact cross_hitting_card hHhit
 
+/-! ## The connectivity ⇒ index-interval bridge
+
+The remaining link: in a path decomposition (`LinearBags` with the vertex-interval property
+`hvint` and the edge-cover property `hedge` for a graph `G`), a `G`-connected vertex set occupies
+a *betweenness-closed* set of bag indices. This is what supplies the `mem_iff` interval
+hypothesis of `order_le_maxBag` for a graph bramble.
+
+`Conn` encodes connectivity of `b` as: any two of its vertices are joined by a `G`-walk staying
+in `b`. The proof is an induction on that walk: each edge lies in a common bag, so the walk's
+vertex-intervals form an overlapping chain spanning `[i, k]`, hence cover any `j` between. -/
+
+variable {V : Type*} [DecidableEq V]
+
+omit [DecidableEq V] in
+/-- Walk induction core: along a `G`-walk from `u` to `w` lying in `b`, if `u` occupies bag index
+`i` and `w` occupies bag index `k` with `i ≤ j ≤ k`, then some walk vertex (hence a vertex of `b`)
+occupies bag index `j`. -/
+theorem walk_hits (L : LinearBags V) (G : SimpleGraph V) (b : Finset V) (j : Fin L.len)
+    (hvint : ∀ (v : V) (a c : Fin L.len), a ≤ j → j ≤ c → v ∈ L.bag a → v ∈ L.bag c → v ∈ L.bag j)
+    (hedge : ∀ ⦃x y : V⦄, G.Adj x y → ∃ m, x ∈ L.bag m ∧ y ∈ L.bag m)
+    {u w : V} (p : G.Walk u w) :
+    (∀ x ∈ p.support, x ∈ b) → ∀ (i k : Fin L.len), i ≤ j → j ≤ k →
+      u ∈ L.bag i → w ∈ L.bag k → ∃ x, x ∈ L.bag j ∧ x ∈ b := by
+  induction p with
+  | nil =>
+    intro hsupp i k hij hjk hu hw
+    exact ⟨_, hvint _ i k hij hjk hu hw, hsupp _ (by simp)⟩
+  | cons h q ih =>
+    intro hsupp i k hij hjk hu hw
+    obtain ⟨m, hum, hvm⟩ := hedge h
+    rcases le_total j m with hjm | hmj
+    · exact ⟨_, hvint _ i m hij hjm hu hum, hsupp _ (by simp)⟩
+    · refine ih (fun x hx => hsupp x ?_) m k hmj hjk hvm hw
+      rw [SimpleGraph.Walk.support_cons]; exact List.mem_cons_of_mem _ hx
+
+/-- **The bridge.** A `G`-connected vertex set `b` occupies a betweenness-closed set of bag
+indices: if `b` meets bag `i` and bag `k`, it meets every bag `j` with `i ≤ j ≤ k`. -/
+theorem bag_meets_betweenness (L : LinearBags V) (G : SimpleGraph V) (b : Finset V)
+    (hvint : ∀ (v : V) (a c j : Fin L.len), a ≤ j → j ≤ c → v ∈ L.bag a → v ∈ L.bag c → v ∈ L.bag j)
+    (hedge : ∀ ⦃x y : V⦄, G.Adj x y → ∃ m, x ∈ L.bag m ∧ y ∈ L.bag m)
+    (Conn : ∀ u w, u ∈ b → w ∈ b → ∃ p : G.Walk u w, ∀ x ∈ p.support, x ∈ b)
+    {i j k : Fin L.len} (hij : i ≤ j) (hjk : j ≤ k)
+    (hi : (L.bag i ∩ b).Nonempty) (hk : (L.bag k ∩ b).Nonempty) :
+    (L.bag j ∩ b).Nonempty := by
+  obtain ⟨u, hu⟩ := hi; obtain ⟨w, hw⟩ := hk
+  rw [Finset.mem_inter] at hu hw
+  obtain ⟨p, hp⟩ := Conn u w hu.2 hw.2
+  obtain ⟨x, hxj, hxb⟩ :=
+    walk_hits L G b j (fun v a c => hvint v a c j) hedge p hp i k hij hjk hu.1 hw.1
+  exact ⟨x, Finset.mem_inter.mpr ⟨hxj, hxb⟩⟩
+
 end FieldStemProof.Bramble
