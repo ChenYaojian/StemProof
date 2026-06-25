@@ -17,6 +17,7 @@ Layered targets:
 * `FieldStemProof.Sycamore` — end-to-end Sycamore-53 lower bound (cut + cost + stem + rigidity)
 * `FieldStemProof.Spacetime` — faithful cut geometry: time/space sweeps, min(n,√n·d) scale
 * `FieldStemProof.Bramble` — interval-Helly pathwidth lower bound (stem width ≥ bramble order)
+* `FieldStemProof.GridConn` — grid cross connectivity ⇒ self-contained pathwidth lower bound
 -/
 import FieldStemProof.Defs
 import FieldStemProof.Gates
@@ -30,3 +31,4 @@ import FieldStemProof.Lattice
 import FieldStemProof.Sycamore
 import FieldStemProof.Spacetime
 import FieldStemProof.Bramble
+import FieldStemProof.GridConn
