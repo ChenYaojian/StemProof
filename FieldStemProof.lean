@@ -18,6 +18,7 @@ Layered targets:
 * `FieldStemProof.Spacetime` — faithful cut geometry: time/space sweeps, min(n,√n·d) scale
 * `FieldStemProof.Bramble` — interval-Helly pathwidth lower bound (stem width ≥ bramble order)
 * `FieldStemProof.GridConn` — grid cross connectivity ⇒ self-contained pathwidth lower bound
+* `FieldStemProof.Brickwork` — keystone: deep brickwork routes a min(n,√n·d) cross-cut matching
 -/
 import FieldStemProof.Defs
 import FieldStemProof.Gates
@@ -32,3 +33,4 @@ import FieldStemProof.Sycamore
 import FieldStemProof.Spacetime
 import FieldStemProof.Bramble
 import FieldStemProof.GridConn
+import FieldStemProof.Brickwork
