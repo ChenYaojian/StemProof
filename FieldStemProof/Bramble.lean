@@ -91,4 +91,56 @@ theorem order_le_maxBag {V : Type*} [Fintype V] [DecidableEq V] (L : LinearBags 
   calc order β ≤ (L.bag i).card := order_le_card_of_hitting β hi'
     _ ≤ L.maxBag hlen := Finset.le_sup' (fun j => (L.bag j).card) (Finset.mem_univ i)
 
+/-! ## The grid cross-bramble: order ≥ k/2
+
+On the `k × k` grid (`Fin k × Fin k`), the `k` "crosses" `cross i = row i ∪ column i` form a
+bramble: pairwise intersecting (at `(i,j)`), and of large order. We prove the asymptotically
+correct order bound `k ≤ 2 · order` by the elementary row/column-projection counting (any hitting
+set's row- and column-projections must together cover all `k` indices). This gives the `Θ` scale
+(the exact cross-bramble order is `k+1`, but `Θ(min(n,√n·d))` only needs order `= Θ(k)`). -/
+
+/-- The `i`-th cross of the `k × k` grid: row `i` together with column `i`. -/
+def cross (k : ℕ) (i : Fin k) : Finset (Fin k × Fin k) :=
+  Finset.univ.filter (fun p => p.1 = i ∨ p.2 = i)
+
+/-- The crosses are pairwise intersecting (a genuine bramble): `(i, j) ∈ cross i ∩ cross j`. -/
+theorem cross_inter_nonempty (k : ℕ) (i j : Fin k) :
+    (cross k i ∩ cross k j).Nonempty :=
+  ⟨(i, j), by simp [cross, Finset.mem_filter]⟩
+
+/-- **Cross-bramble order lower bound (Θ scale).** Any hitting set `H` of all `k` crosses has
+`k ≤ 2 · H.card`: its row-projection `R` and column-projection `C` together cover every index,
+so `k ≤ |R| + |C| ≤ 2|H|`. -/
+theorem cross_hitting_card {k : ℕ} {H : Finset (Fin k × Fin k)}
+    (hH : ∀ i, (H ∩ cross k i).Nonempty) : k ≤ 2 * H.card := by
+  classical
+  set R := H.image Prod.fst with hR
+  set C := H.image Prod.snd with hC
+  have hcover : (Finset.univ : Finset (Fin k)) ⊆ R ∪ C := by
+    intro i _
+    obtain ⟨p, hp⟩ := hH i
+    rw [Finset.mem_inter] at hp
+    have hpc : p.1 = i ∨ p.2 = i := by simpa [cross, Finset.mem_filter] using hp.2
+    rcases hpc with h1 | h2
+    · exact Finset.mem_union_left _ (h1 ▸ Finset.mem_image_of_mem Prod.fst hp.1)
+    · exact Finset.mem_union_right _ (h2 ▸ Finset.mem_image_of_mem Prod.snd hp.1)
+  calc k = (Finset.univ : Finset (Fin k)).card := by rw [Finset.card_univ, Fintype.card_fin]
+    _ ≤ (R ∪ C).card := Finset.card_le_card hcover
+    _ ≤ R.card + C.card := Finset.card_union_le _ _
+    _ ≤ H.card + H.card := Nat.add_le_add Finset.card_image_le Finset.card_image_le
+    _ = 2 * H.card := by ring
+
+/-- The cross-bramble order is `Θ(k)`: `k ≤ 2 · order`. Combined with `order_le_maxBag`, any path
+decomposition of the `k × k` grid (whose connected crosses occupy index intervals) has a bag of
+size `≥ k/2`, i.e. pathwidth `≥ k/2 − 1` — the `Θ(min(n,√n·d))` stem-width lower bound. -/
+theorem cross_order_ge {k : ℕ} (hk : 0 < k) : k ≤ 2 * order (cross k) := by
+  classical
+  have hne : {n | ∃ H : Finset (Fin k × Fin k), IsHittingSet (cross k) H ∧ H.card = n}.Nonempty := by
+    refine ⟨(Finset.univ).card, Finset.univ, fun i => ?_, rfl⟩
+    obtain ⟨a⟩ : Nonempty (Fin k) := ⟨⟨0, hk⟩⟩
+    exact ⟨(i, i), by simp [cross]⟩
+  obtain ⟨H, hHhit, hHcard⟩ := Nat.sInf_mem hne
+  rw [order, ← hHcard]
+  exact cross_hitting_card hHhit
+
 end FieldStemProof.Bramble
