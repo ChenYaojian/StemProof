@@ -12,6 +12,7 @@ Layered targets:
 * `FieldStemProof.LemmaB`   — generic full-rank tightness (spec §3, Lemma B) — first goal
 * `FieldStemProof.Worstcase` — worst-case witness: explicit gates realize full Schmidt rank
 * `FieldStemProof.Rigidity` — Contraction Rigidity: the structural theorem (reframes Conj. C)
+* `FieldStemProof.Matching` — Kronecker routing: a k-matching of entanglers ⇒ full rank 2^k
 -/
 import FieldStemProof.Defs
 import FieldStemProof.Gates
@@ -19,4 +20,5 @@ import FieldStemProof.TheoremA
 import FieldStemProof.CorollaryD
 import FieldStemProof.LemmaB
 import FieldStemProof.Worstcase
+import FieldStemProof.Matching
 import FieldStemProof.Rigidity

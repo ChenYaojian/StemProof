@@ -23,6 +23,7 @@ This is the layer that turns the open "Conjecture C" into:
 -/
 import FieldStemProof.LemmaB
 import FieldStemProof.Worstcase
+import FieldStemProof.Matching
 
 namespace FieldStemProof
 
@@ -75,5 +76,52 @@ theorem bulkEntangling_of_bellWitness [Nontrivial K]
       = bellWitness p e := by funext x; rw [eval_C]
   rw [this, det_squareFlatten_bellWitness]
   exact one_ne_zero
+
+/-! ### From a routable k-matching to BulkEntangling (Conjecture C.2)
+
+The structural hypothesis `BulkEntangling` is discharged by a *routable k-matching*: if the
+`k = |p-side|` qubits across the cut can each be paired through a nonsingular entangling gate
+(`Matching.bondProd`), the cut flattening is nonsingular, so the architecture reaches full
+Schmidt rank `2^k`. This reduces C.2 to the combinatorial fact that the spacetime lattice admits
+such a matching (the remaining lattice-routing step). -/
+
+/-- A nonsingular cut matrix `M` discharges `BulkEntangling`: the constant tensor family realizing
+`M` (via `tensorOfMatrix`) has nonsingular cut flattening at every parameter, in particular one. -/
+theorem bulkEntangling_of_nonsingular_cut [Nontrivial K]
+    (e : ({i // p i} → Fin 2) ≃ ({i // ¬ p i} → Fin 2))
+    (M : Matrix ({i // p i} → Fin 2) ({i // p i} → Fin 2) K) (hM : M.det ≠ 0) :
+    BulkEntangling p e (fun x => (C (tensorOfMatrix p e M x) : MvPolynomial ι K)) := by
+  refine ⟨fun _ => 0, ?_⟩
+  have hev : (fun x => eval (fun _ => (0 : K)) (C (tensorOfMatrix p e M x) : MvPolynomial ι K))
+      = tensorOfMatrix p e M := by funext x; rw [eval_C]
+  rw [hev, squareFlatten_tensorOfMatrix]
+  exact hM
+
+/-- **Routable k-matching ⇒ BulkEntangling (Conjecture C.2).** If the `p`-side carries `k` qubits
+(`eqp : {i // p i} ≃ Fin k`) and each of the `k` bonds across the cut routes a nonsingular
+entangling gate `B j`, then the architecture is bulk entangling — hence contraction rigid by
+`contraction_rigidity`. -/
+theorem bulkEntangling_of_matching [IsDomain K] {k : ℕ}
+    (e : ({i // p i} → Fin 2) ≃ ({i // ¬ p i} → Fin 2)) (eqp : {i // p i} ≃ Fin k)
+    (B : Fin k → Matrix (Fin 2) (Fin 2) K) (hB : ∀ j, (B j).det ≠ 0) :
+    ∃ T : QTensor I (MvPolynomial ι K), BulkEntangling p e T := by
+  -- Reindex the bond product onto the p-side configurations; det is preserved.
+  set eqc : ({i // p i} → Fin 2) ≃ (Fin k → Fin 2) := Equiv.arrowCongr eqp (Equiv.refl _)
+  refine ⟨_, bulkEntangling_of_nonsingular_cut p e
+    ((Matching.bondProd B).submatrix eqc eqc) ?_⟩
+  rw [Matrix.det_submatrix_equiv_self]
+  exact Matching.det_bondProd_ne_zero B hB
+
+/-- **End-to-end (C.2 ⇒ C.1).** A routable k-matching of nonsingular entangling gates across the
+cut yields a contraction-rigid circuit family: full Schmidt rank for generic gate parameters,
+with rank collapse confined to a proper subvariety. This is the structural statement
+"entanglement-routing capability ⇒ no rank collapse", with the matching as the checkable
+hypothesis. -/
+theorem contractionRigid_of_matching [IsDomain K] {k : ℕ}
+    (e : ({i // p i} → Fin 2) ≃ ({i // ¬ p i} → Fin 2)) (eqp : {i // p i} ≃ Fin k)
+    (B : Fin k → Matrix (Fin 2) (Fin 2) K) (hB : ∀ j, (B j).det ≠ 0) :
+    ∃ T : QTensor I (MvPolynomial ι K), ContractionRigid p e T := by
+  obtain ⟨T, hT⟩ := bulkEntangling_of_matching p e eqp B hB
+  exact ⟨T, contraction_rigidity p e hT⟩
 
 end FieldStemProof
