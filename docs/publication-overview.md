@@ -85,21 +85,48 @@ Sycamore 53-20 ≈ `10^18`、Sycamore-70 ≈ `10^24`。
   latticePathwidthBound, latticePathwidthConst]`：代价/割面/刚性三部分仅标准公理；仅
   stem-最优性依赖那条已发表 grid 定理。`markovShi` 未用到。
 
+### stem 宽度下界（`Bramble` / `GridConn`，**自证，零自定义 axiom**）
+原本作为引用 axiom 的"最优割面不能更小"（grid treewidth 下界），现对 **stem/pathwidth 宽度
+完全自证**（`#print axioms` 仅标准公理）。走 pathwidth（stem=路径分解，只需**区间 Helly**，
+而非 Mathlib 缺失的子树 Helly）+ Θ 常数策略：
+- `interval_helly` — 两两相交区间共点（公共点 = 最大左端点），初等心脏。
+- `order_le_maxBag` / `order_le_maxBag'` — 抽象 pathwidth bramble 下界：路径分解最大 bag
+  ≥ bramble order。
+- `cross k i = row i ∪ col i`；`cross_inter_nonempty`（两两相交，真 bramble）；
+  `cross_order_ge`（`k ≤ 2·order`，行/列投影计数，Θ(k)；精确值 k+1 但 Θ 足够）。
+- `walk_hits` / `bag_meets_betweenness` — **连通 ⇒ 区间桥**：沿 G-walk 归纳，每条边经同一 bag
+  ⇒ 顶点区间成重叠链 ⇒ 连通顶点集占据连续 index 区间。
+- `pathwidth_ge_order_of_connected` — 组装：任意图 G 的任意路径分解 + 两两相交且 G-连通的
+  bramble ⇒ maxBag ≥ order。
+- `GridConn`：`gridGraph k = pathGraph k □ pathGraph k`（真最近邻 grid）；`cross_connected`
+  （盒积嵌入 + `pathGraph_preconnected` 路由到中心，证十字 G-连通）；
+  **`grid_pathwidth_lower_unconditional`** — grid 图的任意路径分解 ⇒ `k ≤ 2·maxBag`，即 stem
+  宽度 ≥ k/2−1 = **Θ(min(n,√n·d))**，`#print axioms` = `[propext, Classical.choice,
+  Quot.sound]`，**无任何自定义 axiom**。
+
+> **影响**：审稿人最初的两问——(Q2)"该 scale 是否为下界"——对 **stem 路径本身**现在是无条件
+> 机器定理，不再依赖引用的 treewidth 下界。原 `Spacetime.treewidthLowerBound` axiom 对 stem
+> 宽度已被兑现。
+
 ---
 
 ## 2. 依赖已发表定理（显式 axiom，注明出处）
 
-**只有 Theorem A 的 stem-最优性**（`optimal_stem_lattice`，及端到端定理中用到它的部分）依赖
-自定义 axiom（`#print axioms` 核验）。这些 axiom 全是**已发表、已严格证明**的结果，Mathlib
-仅是尚未收录、且无可导入的形式化版本（唯一的 treewidth 形式化在 Coq，Lean 无法引用）：
+经 bramble 下界自证后，**唯一剩余的自定义 axiom 是 `pw = Θ(tw)`（"stem 是全局最优"）**：把
+已自证的"stem 宽度 ≥ Θ(min)"推广到"一切（树）收缩也不更省"。这是一条**已发表、已严格证明**
+的结果，Mathlib 尚未收录且无可导入的形式化版本（唯一的 treewidth 形式化在 Coq，Lean 无法
+引用）：
 
-| Axiom | 文献 | 内容 |
-|---|---|---|
-| `markovShi` | Markov & Shi, *SIAM J. Comput.* 38(3), 2008 (quant-ph/0511069) | `cc(G) = tw(L(G))`，收缩宽度 = 线图 treewidth |
-| `latticePathwidthBound` | 经典 grid `pw=tw=min`（Seymour–Thomas bramble）；Kozawa–Otachi–Yamazaki（3D grid `tw=min(n,√n·d)+…`） | 晶格图 `pw ≤ C·cc` |
+| Axiom | 文献 | 内容 | 状态 |
+|---|---|---|---|
+| `markovShi` | Markov & Shi, *SIAM J. Comput.* 38(3), 2008 (quant-ph/0511069) | `cc(G) = tw(L(G))`，收缩宽度 = 线图 treewidth | 引用（端到端定理用） |
+| `latticePathwidthBound` | 经典 grid `pw=tw`（Seymour–Thomas bramble）；Kozawa–Otachi–Yamazaki | 晶格 `pw ≤ C·cc`（即 tw ≥ Θ(pw)，stem 全局最优） | 引用 |
+| ~~grid treewidth 下界 `tw ≥ Θ(min)`~~ | ~~Kozawa–Otachi–Yamazaki~~ | ~~割面不能更小~~ | **已自证**（§1 Bramble/GridConn，对 stem/pathwidth） |
 
-把已证定理作为带出处的 axiom 引用，是标准的 "cite, don't reprove" 实践。整份发展因此
-**条件性地建立在已确立的数学之上**，而非建立在未证猜想之上。
+明确区分两个不同命题：**"stem 宽度 ≥ Θ(min)"已自证**（任何 stem 收缩不能更省）；仍引用的是
+**"最优树收缩 ≤ stem"（pw=Θ(tw)）**，把下界从 stem 推广到一切收缩路径。把已证定理作为带出处的
+axiom 引用，是标准的 "cite, don't reprove" 实践。整份发展因此**条件性地建立在已确立的数学之
+上**，而非建立在未证猜想之上。
 
 ---
 
@@ -186,6 +213,8 @@ rigidity 定理、并约化随机性的整体论证是新的。
 > Rigidity 结构定理**——"能跨割面纠缠的电路 ⇒ generic 无秩坍缩 ⇒ 紧收缩下界"——从而把随机
 > 电路紧下界从一个概率（随机矩阵）问题**重构为结构 + 纯组合问题**（随机电路 / Sycamore 成
 > 为 corollary）；并以单一定理 `sycamore53_lower_bound` 给出端到端陈述（割面=53、代价
-> ~10^18、最优 stem 结构、满 Schmidt 秩 2^53），仅依赖标准公理 + 一条注明出处的已发表
-> grid-treewidth 定理。唯一剩余数学是一个**纯组合**的几何路由（深晶格容许跨割面匹配）。请
-> 评估：(a) 结构定理路线（路线 B）的发表价值与目标会议；(b) 几何路由命题的难度与可攻性。
+> ~10^18、最优 stem 结构、满 Schmidt 秩 2^53）。**stem（pathwidth）宽度下界 Θ(min(n,√n·d))
+> 现已完全自证**（bramble + 区间 Helly + grid 十字连通，`#print axioms` 仅标准公理）；唯一
+> 剩余的引用是 `pw = Θ(tw)`（把 stem 下界推广到一切收缩，已发表 grid 定理）。请评估：
+> (a) 结构定理路线（路线 B）的发表价值与目标会议；(b) 把唯一剩余引用 `pw=Θ(tw)` 也形式化的
+> 必要性与代价；(c) C 线对真实 Sycamore brickwork 几何路由（深晶格容许跨割面匹配）的可攻性。
