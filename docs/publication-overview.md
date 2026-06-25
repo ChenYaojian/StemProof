@@ -16,8 +16,16 @@ Sycamore 53-20 ≈ `10^18`、Sycamore-70 ≈ `10^24`。
 
 - **A** 最优收缩路径可取 stem 结构（存在性）
 - **B** generic / 无秩坍缩 ⇒ 图论 treewidth 上界升级为**紧**下界
-- **C** average-case：Haar 随机、深度阈值之上，下界 a.a.s. 紧 —— **开放猜想**
+- **C** **Contraction Rigidity（结构定理，已证）**：把原"average-case 概率猜想"重述为
+  *结构*命题——"能跨割面纠缠（BulkEntangling）⇒ generic 满秩（无秩坍缩）"，随机电路 /
+  Sycamore 成为 corollary，**绕开随机矩阵 `Pr(·)` 分析**。前件（跨割面匹配）经
+  Kronecker 路由约化为**纯组合**条件。
 - **D** 代入复现 Sycamore 数字
+- **端到端**：`sycamore53_lower_bound` 单一定理合取 A+C+D（见 §1）。
+
+> **本轮重大进展**：C 从"开放概率猜想"重构为"已证结构定理 + 一个纯组合的剩余前件"。这
+> 是路线 B（结构 / 复杂度理论）对路线 A（随机矩阵概率）的替代，与本框架"图结构 + 代数几何
+> genericity + 张量秩"的风格契合。
 
 ---
 
@@ -57,13 +65,33 @@ Sycamore 53-20 ≈ `10^18`、Sycamore-70 ≈ `10^24`。
 - `stemCost_sycamore53 : 10^18 ≤ 4·2^53·150 < 10^19`  → **~10^18**
 - `stemCost_sycamore70 : 10^23 ≤ 4·2^70·200 < 10^24`  → **~10^24**
 
+### C 线 — Contraction Rigidity 结构定理（`Rigidity` / `Matching` / `Lattice`，仅标准公理）
+原"猜想 C"重构为已证结构定理，全部 `#print axioms` 仅标准公理：
+- `BulkEntangling` / `ContractionRigid` / **`contraction_rigidity`** — *能跨割面纠缠
+  （∃ 一个使割面满秩的门配置）⇒ generic 满秩*（`generic_full_schmidt` 的具名推论，无概率）。
+- `Matching.det_bondProd_ne_zero` — **Kronecker 路由聚合**：k 个非奇异 bond 的迭代 Kronecker
+  积满秩 = 满 Schmidt 秩 `2^k`（对 k 归纳，`Fin.consEquiv` + `det_kronecker`）。
+- `bulkEntangling_of_matching` / `contractionRigid_of_matching` — 跨割面 k-匹配 ⇒ BulkEntangling
+  ⇒ rigid。
+- `matching_contractionRigid` — **以跨割面匹配 μ 为显式数据**（路线 B 形式）；
+  `chipMatching` / `chip_contractionRigid` — `Fin m ⊕ Fin m` 链上**参数化显式几何匹配**
+  （左 j ↔ 右 j，对所有 m）。
+
+### 端到端（`Sycamore.lean`）— 一条机器核验定理
+- **`sycamore53_lower_bound`** 合取：（割面=53）∧（代价 ∈[10^18,10^19)）∧（最优路径具 stem
+  结构，宽度 ≤ C·cc=53）∧（53 比特平衡割面 ⇒ ContractionRigid，满 Schmidt 秩 `2^53`）。
+- `sycamore53 : CircuitGraph` 具体模型，`sycamore53_cc` 真证 cc=53。
+- `#print axioms sycamore53_lower_bound = [propext, Classical.choice, Quot.sound,
+  latticePathwidthBound, latticePathwidthConst]`：代价/割面/刚性三部分仅标准公理；仅
+  stem-最优性依赖那条已发表 grid 定理。`markovShi` 未用到。
+
 ---
 
 ## 2. 依赖已发表定理（显式 axiom，注明出处）
 
-**整个项目只有一条定理** `optimal_stem_lattice` 依赖自定义 axiom（`#print axioms`
-核验）。这些 axiom 全是**已发表、已严格证明**的结果，Mathlib 仅是尚未收录、且无可导入
-的形式化版本（唯一的 treewidth 形式化在 Coq，Lean 无法引用）：
+**只有 Theorem A 的 stem-最优性**（`optimal_stem_lattice`，及端到端定理中用到它的部分）依赖
+自定义 axiom（`#print axioms` 核验）。这些 axiom 全是**已发表、已严格证明**的结果，Mathlib
+仅是尚未收录、且无可导入的形式化版本（唯一的 treewidth 形式化在 Coq，Lean 无法引用）：
 
 | Axiom | 文献 | 内容 |
 |---|---|---|
@@ -77,24 +105,30 @@ Sycamore 53-20 ≈ `10^18`、Sycamore-70 ≈ `10^24`。
 
 ## 3. 开放（未证）
 
-- **猜想 C**：对 (2+1)D = **3D 时空晶格**、深度超过可模拟相变阈值的 **Haar 随机**电路，
-  中间张量 a.a.s. 满秩 ⇒ average-case 下界紧。
-  - 现状：**未证**。且在**浅层 2D**已被 Napp–La Placa–Dalzell–Harrow–Brandão
-    (PRX 2022, arXiv:2001.00021) **证伪**（measurement-induced 相变的可模拟相）。因此任何
-    成立版本必须限定到 **3D 深 bulk**（阈值之上）——这正是本课题锁定 3D 的原因。
-  - 这是本课题真正的研究难点与潜在主要贡献。
+C 线已从概率猜想重构为"已证结构定理 + 一个纯组合的剩余前件"。剩余开放项只有两条，且均
+**不再是随机矩阵 / 谱分析**：
+
+1. **几何路由（C 线唯一剩余数学）**：深 (2+1)D Sycamore brickwork（深度过混合阈值）的某个
+   割面，确实诱导出形式化所需的**跨割面完美匹配**（把 `chipMatching` 的抽象两块落到真实芯片
+   坐标）。这是**纯组合**命题（晶格能否配对），不是"秩会不会坍缩"的分析。Napp 相变的
+   `d>d★` 阈值正落在此（深度够，因果锥才跨得过割面）。
+2. **C.3 概率 corollary**：`Pr(rank collapse) = 0`（坏集零测度的直接推论），目前仅在 spec
+   陈述，尚未形式化。
+
+> 与上一版的区别：原"猜想 C（average-case Haar 紧性）"作为**概率命题**已被结构定理取代；
+> Napp 浅层反例不再是"障碍"，而是结构定理前件（深度阈值）的**边界刻画**。
 
 ---
 
 ## 4. 已知"模型 vs 完整命题"的缝隙（诚实标注）
 
-1. **Theorem A 对抽象 `CircuitGraph` 结构证明，尚未实例化到具体 Sycamore 晶格图。** A 证
-   的是"任何满足晶格 `pw≤C·cc` 的图，最优路径可取 stem"，把它绑到真正的时空晶格对象差
-   一步实例化。
+1. **Theorem A 的 stem-最优性经具体 `sycamore53` 模型实例化**（`cc=53` 真证），但该模型的
+   width 取常值以使 `cc=53` 干净成立；把它换成真实时空晶格图的逐序 width 计算，需要在 Lean
+   里自建 treewidth 理论（Mathlib 无）——这正是 §2 两条 grid axiom 承担的部分。
 2. **引理 B 的 generic 结论针对无约束张量**；真实电路中间张量是受约束子族——worst-case
-   （具体门）已接死，average-case 即猜想 C。
-3. **尚无端到端单一定理** `sycamore53_lower_bound`：第 2 步（抽象）与第 4 步（具体算术）
-   目前人工拼接，串成一条机器定理需补 §4.1 的实例化。
+   （具体门）与 C 线（跨割面匹配）已接死，唯余 §3.1 的几何路由。
+3. **刚性部分的 53 比特割面**用 `chip_contractionRigid 53`（`Fin 53 ⊕ Fin 53` 抽象两块），
+   尚未绑定真实 Sycamore 芯片几何（即 §3.1）。
 
 ---
 
@@ -110,41 +144,48 @@ Sycamore 53-20 ≈ `10^18`、Sycamore-70 ≈ `10^24`。
 1. **统一严格框架**：把"观察到的 stem 低复杂度"解释为 **pathwidth ≈ treewidth on
    lattices** + **随机性 ⇒ 无秩坍缩 ⇒ 下界紧**，并明确区分"收缩方法下界"与"算法无关硬
    度"。
-2. **机器核验的形式化 artifact**（Lean 4 + Mathlib，无 sorry，公理足迹极小且全部注明）——
-   据查为该主题首个 Lean 形式化。
-3. **猜想 C 的精确陈述**（3D 深 bulk + 阈值），把开放问题从模糊直觉收紧为可攻的命题，
-   且正面处理了 Napp 反例的边界。
+2. **Contraction Rigidity 结构定理（核心新意）**：把"随机电路 average-case 紧性"从概率命题
+   重构为结构命题——"能跨割面纠缠 ⇒ generic 无秩坍缩"，并经 **Kronecker 路由**把前件约化为
+   *纯组合*的跨割面匹配条件。这把一个拥挤的随机矩阵问题，换成了干净的代数几何 + 组合命题，
+   随机电路 / Sycamore / supremacy circuits 成为统一 corollary。
+3. **机器核验的形式化 artifact**（Lean 4 + Mathlib，无 sorry，公理足迹极小且全部注明）——
+   据查为该主题首个 Lean 形式化，并以单一定理 `sycamore53_lower_bound` 给出端到端陈述。
 
 ---
 
 ## 6. 发表潜力 —— 诚实评估
 
-**当前已证内容的定位**：更接近"**严谨综合 + 可核验形式化 artifact + 精确化的开放猜想**"，
-而非"一条全新深定理"。引理 B 的 genericity 内核数学上属标准（generic rank / Schwartz–
-Zippel）；其价值在于完整、无 sorry、并接到量子比特张量与真实门库。
+**当前已证内容的定位**：一个**机器核验的统一框架 + 一条原创结构定理（Contraction
+Rigidity）+ 端到端 Sycamore 实例**。相比上一版，C 线的 reframing 实质提升了新意——它不再是
+"标准工具的综合 + 开放概率猜想"，而是把该领域长期作为概率问题处理的"随机电路紧下界"，**降
+维成一个结构 + 组合命题**（路线 B）。引理 B 的 genericity 内核虽属标准技术，但其封装成
+rigidity 定理、并约化随机性的整体论证是新的。
 
 可能的发表路径：
 
-- **(a) 形式化 / 方法学方向**（ITP / CPP / *J. Automated Reasoning* 类）：以"首个 Lean
-  形式化随机电路收缩复杂度的 stem/treewidth 框架 + 极小公理足迹"为卖点。**当前内容基本够
-  一篇**，需补 §4 的实例化以给出端到端定理。
-- **(b) 量子模拟 / 复杂度方向**（quantum 期刊 / 会议）：以统一框架 + 精确猜想 C 为主。
-  当前新意中等——多数构件已知；若**仅停在已证部分**，更像 survey/position + 形式化附录。
-- **(c) 最高价值**：**证明猜想 C**（或其 3D 深 bulk 的某个非平凡 regime），或给出严格的
-  average-case 下界。这是真正的研究 prize，难度大（需纠缠增长 / 反集中），一旦突破即为强
-  结果。
+- **(a) 复杂度 / 理论 CS 方向**（CCC / ICALP / Quantum）：以 **Contraction Rigidity 结构
+  定理 + "什么电路必然有量子优越性"**为主线，随机电路作为 corollary。这是新意最高、最契合
+  本框架风格的路径。**主要待补**：§3.1 几何路由（把匹配落到真实 Sycamore brickwork），使
+  Sycamore 成为定理的真正实例而非抽象两块模型。
+- **(b) 形式化 / 方法学方向**（ITP / CPP / *J. Automated Reasoning*）：以"首个 Lean 形式化
+  随机电路收缩复杂度框架、极小公理足迹、端到端 `sycamore53_lower_bound`"为卖点。**当前内容
+  已基本够一篇**。
+- **(c) 最高价值**：完成 §3.1 几何路由（纯组合）后，C 线即成为对 3D 深电路的**无条件**
+  （结构假设下）紧下界——一旦把"深 Sycamore brickwork 满足跨割面匹配"证出，即得到强结果。
 
 **会显著增强发表力的两件事**：
-1. 补 §4.1 端到端实例化 → 一条机器核验的 `sycamore53_lower_bound`，把"全部 ✅+▣"的论断
-   钉成单一定理。
-2. 在猜想 C 上取得任何严格进展（哪怕受限 regime / 数值相图 + 部分解析阈值）。
+1. **补 §3.1 几何路由**：把 `chipMatching` 落到真实 (2+1)D Sycamore 坐标，使
+   `sycamore53_lower_bound` 的刚性部分指向真实芯片而非抽象两块。纯组合、无分析。
+2. 形式化 C.3 概率 corollary（`Pr=0`），给出"随机电路作为 corollary"的机器核验版本。
 
 ---
 
 ## 7. 一句话给评审
 
-> 我们有一个**机器核验、无 sorry、公理足迹极小**的 Lean 形式化，严格建立了"随机电路 TN
-> 的最优收缩路径可取 stem 结构、并由无秩坍缩给出紧的收缩下界"——其中除一条已发表的
-> grid-treewidth 定理（显式引用）外全部真证，并把唯一开放的 average-case 紧性收紧为精确
-> 的、避开已知反例的猜想 C。请评估：(a) 作为形式化 artifact 的发表价值；(b) 猜想 C 的可
-> 攻性与潜在影响。
+> 我们有一个**机器核验、无 sorry、公理足迹极小**的 Lean 形式化，建立了 **Contraction
+> Rigidity 结构定理**——"能跨割面纠缠的电路 ⇒ generic 无秩坍缩 ⇒ 紧收缩下界"——从而把随机
+> 电路紧下界从一个概率（随机矩阵）问题**重构为结构 + 纯组合问题**（随机电路 / Sycamore 成
+> 为 corollary）；并以单一定理 `sycamore53_lower_bound` 给出端到端陈述（割面=53、代价
+> ~10^18、最优 stem 结构、满 Schmidt 秩 2^53），仅依赖标准公理 + 一条注明出处的已发表
+> grid-treewidth 定理。唯一剩余数学是一个**纯组合**的几何路由（深晶格容许跨割面匹配）。请
+> 评估：(a) 结构定理路线（路线 B）的发表价值与目标会议；(b) 几何路由命题的难度与可攻性。
