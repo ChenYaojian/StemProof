@@ -107,11 +107,42 @@
 
 **待补严格度**：(a) "存在一个赋值使 `M_i` 满秩"需要构造——这一步把"格点割面 `≥` 对应纠缠"显式化，是引理真正的技术负担；(b) 需说明 `|cut_i|` 沿 stem 的分布（SW-TNC 观察到呈"纺锤/spindle"，两端小中间大），紧性只需 `max_i |cut_i| = pw`。
 
-### 猜想 C（average-case, 阈值之上）— 前沿·诚实标注
+### 定理 C（Contraction Rigidity，结构定理）— 已证 + 待验证前件
 
-> 存在深度阈值 `d★(L)`（与几何相关），使得对 `d > d★` 的 Haar 随机电路 `C ~ 𝒞(A, μ_Haar)`，引理 B 的满秩 a.a.s. 成立；即 `2^{tw} · steps` 是 average-case 紧的收缩下界。
+把原"猜想 C"从**概率命题**重述为**结构命题**：不证"Haar 随机电路 a.a.s. 满秩"，而证
+"任何*能跨割面纠缠*的电路族，对 generic 门参数满秩"。随机电路、Sycamore、Google
+supremacy circuits 都变成 corollary（验证它们满足结构前件即可），从而**绕开随机矩阵
+`Pr(·)` 分析**。
 
-**为何只能是猜想**：[M4] 证明了 `d < d★` 时随机浅层电路发生秩坍缩、可高效模拟，故无阈值限制的版本**为假**。`d★` 对应 measurement-induced entanglement 相变点。证明需把"随机门 ⇒ 中间张量谱不坍缩"与相变阈值定量挂钩——**目前文献无此证明，是本课题最大原创空间，也是最难部分**。
+**C.1 结构定理（已证，无 sorry，仅标准公理）.** 设割面 flattening `M(θ)` 是门参数 θ 的
+多项式矩阵。
+
+> **BulkEntangling**（存在一个门配置 θ₀ 使 `det M(θ₀) ≠ 0`，即架构*有能力*在割面达到满
+> Schmidt 秩 `2^k`）⇒ **ContractionRigid**（`det M` 是非零多项式，且对真子簇外的所有 θ
+> 满秩）。
+
+形式化：`Rigidity.contraction_rigidity`（= `LemmaB.generic_full_schmidt` 的具名推论，
+Schwartz–Zippel genericity，无概率）。前件非空洞：`bulkEntangling_of_bellWitness` 及 worst-
+case 门见证已兑现。
+
+**C.2 待验证前件（新工作）.** 把 BulkEntangling 从"假设"变成"对时空晶格可检验"：
+
+> **可路由 k-匹配**（割面两侧的 k 对比特，能经因果锥被一组纠缠门配对连通；要求深度过混
+> 合阈值 `d★`，使因果锥跨越割面——这正是 Napp [M4] 浅层反例失效处）⇒ BulkEntangling。
+
+证法：把匹配门设成 iSWAP/SWAP、其余设成 identity，flattening 即匹配的 Kronecker 积，满秩
+（worst-case 见证 `gate_full_schmidt` 已做单门版；待补 Kronecker 路由聚合 + Sycamore
+brickwork 满足匹配）。
+
+**C.3 概率版（corollary）.** 因坏集 = 零测度子簇，对任意在门参数上连续的测度
+`μ`（含 Haar、有限连续门集），`Pr_{θ~μ}(rank collapse) = 0`（或随系统增大 → 0）。这是
+C.1 的直接推论，**不需**独立的随机矩阵论证。
+
+**与 [M4] 的关系**：M4 是 2D 浅层（准 1D 测量动力学、`d<d★`）的可模拟相反例；C.2 的混合阈
+值条件 `d>d★` + 3D 深 bulk（定义 1.1′）正是避开它的 regime。`d★` 的几何依赖仍须显式论证。
+
+**发表定位**：结构定理（路线 B）比概率版（路线 A）更契合本框架的"图结构 + 代数几何
+genericity + 张量秩"风格，且核心蕴含 C.1 已形式化；适合 CCC/ICALP/Quantum 等理论 CS 口味。
 
 ### 推论 D（复现 Sycamore 数字）— 可算
 
@@ -133,7 +164,11 @@
                           ▼
 [构造满秩赋值]──► 引理B（generic紧性）            难度: 中（原创，技术负担在满秩构造）
                           │
-[M4 Napp相变]──► 猜想C（average-case阈值）        难度: 高（open，本课题核心贡献）
+                          ▼
+[已证 generic_full_schmidt]──► 定理C.1（Contraction Rigidity 结构定理）  已证·无sorry
+[可路由k-匹配 + Kronecker路由]──► C.2（BulkEntangling前件，待验证）       难度: 中（新工作）
+[坏集=零测子簇]──► C.3（Pr(rank collapse)=0 概率corollary）             难度: 低（C.1推论）
+[M4 Napp相变]──► C.2 的 regime 边界（d>d★，3D深bulk）                   open（阈值几何依赖）
                           │
 [M3 Boixo值]──► 推论D（Sycamore数字）             难度: 低（代入）
 ```

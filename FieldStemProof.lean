@@ -11,6 +11,7 @@ Layered targets:
 * `FieldStemProof.CorollaryD` — Sycamore complexity numbers 10^18 / 10^24 (spec §3, Cor. D)
 * `FieldStemProof.LemmaB`   — generic full-rank tightness (spec §3, Lemma B) — first goal
 * `FieldStemProof.Worstcase` — worst-case witness: explicit gates realize full Schmidt rank
+* `FieldStemProof.Rigidity` — Contraction Rigidity: the structural theorem (reframes Conj. C)
 -/
 import FieldStemProof.Defs
 import FieldStemProof.Gates
@@ -18,3 +19,4 @@ import FieldStemProof.TheoremA
 import FieldStemProof.CorollaryD
 import FieldStemProof.LemmaB
 import FieldStemProof.Worstcase
+import FieldStemProof.Rigidity
