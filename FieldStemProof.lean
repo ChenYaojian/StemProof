@@ -13,6 +13,7 @@ Layered targets:
 * `FieldStemProof.Worstcase` — worst-case witness: explicit gates realize full Schmidt rank
 * `FieldStemProof.Rigidity` — Contraction Rigidity: the structural theorem (reframes Conj. C)
 * `FieldStemProof.Matching` — Kronecker routing: a k-matching of entanglers ⇒ full rank 2^k
+* `FieldStemProof.Lattice` — balanced sweep cut ⇒ matching ⇒ contraction rigid (closes C.2 gap)
 -/
 import FieldStemProof.Defs
 import FieldStemProof.Gates
@@ -22,3 +23,4 @@ import FieldStemProof.LemmaB
 import FieldStemProof.Worstcase
 import FieldStemProof.Matching
 import FieldStemProof.Rigidity
+import FieldStemProof.Lattice
