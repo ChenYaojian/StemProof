@@ -15,6 +15,7 @@ Layered targets:
 * `FieldStemProof.Matching` — Kronecker routing: a k-matching of entanglers ⇒ full rank 2^k
 * `FieldStemProof.Lattice` — balanced sweep cut ⇒ matching ⇒ contraction rigid (closes C.2 gap)
 * `FieldStemProof.Sycamore` — end-to-end Sycamore-53 lower bound (cut + cost + stem + rigidity)
+* `FieldStemProof.Spacetime` — faithful cut geometry: time/space sweeps, min(n,√n·d) scale
 -/
 import FieldStemProof.Defs
 import FieldStemProof.Gates
@@ -26,3 +27,4 @@ import FieldStemProof.Matching
 import FieldStemProof.Rigidity
 import FieldStemProof.Lattice
 import FieldStemProof.Sycamore
+import FieldStemProof.Spacetime
