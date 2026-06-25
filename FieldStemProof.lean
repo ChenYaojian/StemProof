@@ -16,6 +16,7 @@ Layered targets:
 * `FieldStemProof.Lattice` — balanced sweep cut ⇒ matching ⇒ contraction rigid (closes C.2 gap)
 * `FieldStemProof.Sycamore` — end-to-end Sycamore-53 lower bound (cut + cost + stem + rigidity)
 * `FieldStemProof.Spacetime` — faithful cut geometry: time/space sweeps, min(n,√n·d) scale
+* `FieldStemProof.Bramble` — interval-Helly pathwidth lower bound (stem width ≥ bramble order)
 -/
 import FieldStemProof.Defs
 import FieldStemProof.Gates
@@ -28,3 +29,4 @@ import FieldStemProof.Rigidity
 import FieldStemProof.Lattice
 import FieldStemProof.Sycamore
 import FieldStemProof.Spacetime
+import FieldStemProof.Bramble
