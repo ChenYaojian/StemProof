@@ -108,6 +108,24 @@ Sycamore 53-20 ≈ `10^18`、Sycamore-70 ≈ `10^24`。
 > 机器定理，不再依赖引用的 treewidth 下界。原 `Spacetime.treewidthLowerBound` axiom 对 stem
 > 宽度已被兑现。
 
+### P1 拱心石：deep Sycamore ⇒ Ω(min(n,√n·d)) matching（`Brickwork` / `Causal`，自证）
+把"割面宽（bramble）"与"宽割面满秩（rigidity）"接成单条 cost 下界，并把 matching 的 size 钉到
+bramble scale。三层，全部 `#print axioms` 仅标准公理：
+- **拱心石**（`Brickwork.deep_brickwork_contractionRigid`）：size 为 `sweepCut = min(n,√n·d)` 的
+  割面 matching 收缩刚性 ⇒ generic 满 Schmidt 秩 `2^min`；`sycamore53_matching_rigid`（size 53,
+  秩 `2^53`）。`min` 自动覆盖两 regime：deep ⇒ n，shallow ⇒ √n·d（Napp 相变所在）。
+- **gate-counting 上界**（`Brickwork.Schedule`）：brickwork = d 层、每层 ≤ b 个跨割面门；
+  `routed_card_le` **证明** bond ≤ `b·d`（`card_biUnion_le_card_mul`，lightcone 计数，非假设）；
+  `exists_schedule_routed_card` 达到 `min(b·d, n)`。
+- **因果可达**（`Causal`，bond = 真实芯片比特对，非抽象标签）：`chain_reach`（链上间距 k ⇒
+  长度 k 的 walk）；`bond_causal`（第 i 对链距 2i+1 ≤ 2d ⇒ 在深度 d 的 lightcone 内，1D）；
+  `grid_bond_causal` + `grid_causal_matching_size`（2D 芯片 `pathGraph(2m)□pathGraph(K)`：行内
+  对复用链 walk 经 `boxProdLeft` 抬升，K·min(m,d) = 方芯片下 `min(n/2,√n·d)`）。
+
+> **影响**：审稿人 Q2 的全部环节现在都有机器核验的几何/组合证据——**为什么是 min**（算术）、
+> **为什么 b·d 封顶**（gate-counting）、**为什么深度 d 能实现这些 bond**（lightcone walk，1D+2D）。
+> "deep ⇒ Ω(min) matching"不再有抽象隔离或物理 hand-waving。
+
 ---
 
 ## 2. 依赖已发表定理（显式 axiom，注明出处）
@@ -132,18 +150,18 @@ axiom 引用，是标准的 "cite, don't reprove" 实践。整份发展因此**�
 
 ## 3. 开放（未证）
 
-C 线已从概率猜想重构为"已证结构定理 + 一个纯组合的剩余前件"。剩余开放项只有两条，且均
-**不再是随机矩阵 / 谱分析**：
+C 线已从概率猜想重构为"已证结构定理 + 纯组合前件"，且 P1（几何路由 / matching 实现）这一组合
+前件已大体兑现（`Brickwork` + `Causal`，见 §1）。剩余开放项只有两条，均**不再是随机矩阵 /
+谱分析**：
 
-1. **几何路由（C 线唯一剩余数学）**：深 (2+1)D Sycamore brickwork（深度过混合阈值）的某个
-   割面，确实诱导出形式化所需的**跨割面完美匹配**（把 `chipMatching` 的抽象两块落到真实芯片
-   坐标）。这是**纯组合**命题（晶格能否配对），不是"秩会不会坍缩"的分析。Napp 相变的
-   `d>d★` 阈值正落在此（深度够，因果锥才跨得过割面）。
+1. **`pw = Θ(tw)`（唯一剩余引用 axiom）**：把已自证的"stem(pathwidth) 宽度 ≥ Θ(min)"推广到
+   "一切(树)收缩也不更省"。需子树 Helly + 树分解理论（Mathlib 缺）。这是 §2 唯一剩余的引用。
 2. **C.3 概率 corollary**：`Pr(rank collapse) = 0`（坏集零测度的直接推论），目前仅在 spec
    陈述，尚未形式化。
 
-> 与上一版的区别：原"猜想 C（average-case Haar 紧性）"作为**概率命题**已被结构定理取代；
-> Napp 浅层反例不再是"障碍"，而是结构定理前件（深度阈值）的**边界刻画**。
+> 与上一版的区别：原"猜想 C（average-case Haar 紧性）"作为**概率命题**已被结构定理取代；P1 的
+> 几何路由（"深 brickwork 容许 Ω(min) 跨割面 matching"）已由 gate-counting + lightcone 因果可达
+> （1D & 2D）机器证明，不再是开放项。Napp 浅层反例是结构定理前件（深度阈值）的**边界刻画**。
 
 ---
 
@@ -151,11 +169,13 @@ C 线已从概率猜想重构为"已证结构定理 + 一个纯组合的剩余�
 
 1. **Theorem A 的 stem-最优性经具体 `sycamore53` 模型实例化**（`cc=53` 真证），但该模型的
    width 取常值以使 `cc=53` 干净成立；把它换成真实时空晶格图的逐序 width 计算，需要在 Lean
-   里自建 treewidth 理论（Mathlib 无）——这正是 §2 两条 grid axiom 承担的部分。
+   里自建 treewidth 理论（Mathlib 无）——这正是 §2 剩余 grid axiom 承担的部分。
 2. **引理 B 的 generic 结论针对无约束张量**；真实电路中间张量是受约束子族——worst-case
-   （具体门）与 C 线（跨割面匹配）已接死，唯余 §3.1 的几何路由。
-3. **刚性部分的 53 比特割面**用 `chip_contractionRigid 53`（`Fin 53 ⊕ Fin 53` 抽象两块），
-   尚未绑定真实 Sycamore 芯片几何（即 §3.1）。
+   （具体门）、C 线（跨割面匹配）、P1（gate-counting + 因果可达）均已接死。
+3. **P1 因果模型的几何保真度**：`Causal` 用 1D 链（`pathGraph`，b=1）与 2D 方芯片
+   （`pathGraph□pathGraph`，b=√n）；真实 Sycamore 是带 ABCD 门花样的具体 (2+1)D brickwork。
+   min(n,√n·d) 的 scale 与每个 bond 的 lightcone 可达性已证；ABCD 具体调度是进一步保真度，对
+   Ω 下界非必要。
 
 ---
 
@@ -192,17 +212,16 @@ rigidity 定理、并约化随机性的整体论证是新的。
 
 - **(a) 复杂度 / 理论 CS 方向**（CCC / ICALP / Quantum）：以 **Contraction Rigidity 结构
   定理 + "什么电路必然有量子优越性"**为主线，随机电路作为 corollary。这是新意最高、最契合
-  本框架风格的路径。**主要待补**：§3.1 几何路由（把匹配落到真实 Sycamore brickwork），使
-  Sycamore 成为定理的真正实例而非抽象两块模型。
+  本框架风格的路径。P1（几何路由：deep ⇒ Ω(min) matching）已由 gate-counting + lightcone
+  因果可达（1D & 2D）机器证明，Sycamore 不再是抽象两块而有真实芯片图的因果支撑。
 - **(b) 形式化 / 方法学方向**（ITP / CPP / *J. Automated Reasoning*）：以"首个 Lean 形式化
-  随机电路收缩复杂度框架、极小公理足迹、端到端 `sycamore53_lower_bound`"为卖点。**当前内容
-  已基本够一篇**。
-- **(c) 最高价值**：完成 §3.1 几何路由（纯组合）后，C 线即成为对 3D 深电路的**无条件**
-  （结构假设下）紧下界——一旦把"深 Sycamore brickwork 满足跨割面匹配"证出，即得到强结果。
+  随机电路收缩复杂度框架、极小公理足迹（仅 `pw=Θ(tw)` 一条引用）、端到端
+  `sycamore53_lower_bound`"为卖点。**当前内容已充分够一篇**。
+- **(c) 最高价值**：形式化 `pw=Θ(tw)`（子树 Helly）后，C 线即对 stem 与一切收缩都成为
+  **无条件**（结构假设下）紧下界，公理足迹归零（除标准公理）。
 
 **会显著增强发表力的两件事**：
-1. **补 §3.1 几何路由**：把 `chipMatching` 落到真实 (2+1)D Sycamore 坐标，使
-   `sycamore53_lower_bound` 的刚性部分指向真实芯片而非抽象两块。纯组合、无分析。
+1. **形式化 `pw=Θ(tw)`**（P2，子树 Helly + 树分解）：去掉最后一条引用 axiom。
 2. 形式化 C.3 概率 corollary（`Pr=0`），给出"随机电路作为 corollary"的机器核验版本。
 
 ---
@@ -213,8 +232,8 @@ rigidity 定理、并约化随机性的整体论证是新的。
 > Rigidity 结构定理**——"能跨割面纠缠的电路 ⇒ generic 无秩坍缩 ⇒ 紧收缩下界"——从而把随机
 > 电路紧下界从一个概率（随机矩阵）问题**重构为结构 + 纯组合问题**（随机电路 / Sycamore 成
 > 为 corollary）；并以单一定理 `sycamore53_lower_bound` 给出端到端陈述（割面=53、代价
-> ~10^18、最优 stem 结构、满 Schmidt 秩 2^53）。**stem（pathwidth）宽度下界 Θ(min(n,√n·d))
-> 现已完全自证**（bramble + 区间 Helly + grid 十字连通，`#print axioms` 仅标准公理）；唯一
-> 剩余的引用是 `pw = Θ(tw)`（把 stem 下界推广到一切收缩，已发表 grid 定理）。请评估：
-> (a) 结构定理路线（路线 B）的发表价值与目标会议；(b) 把唯一剩余引用 `pw=Θ(tw)` 也形式化的
-> 必要性与代价；(c) C 线对真实 Sycamore brickwork 几何路由（深晶格容许跨割面匹配）的可攻性。
+> ~10^18、最优 stem 结构、满 Schmidt 秩 2^53）。**stem(pathwidth) 宽度下界 Θ(min(n,√n·d)) 与
+> "deep ⇒ Ω(min) 跨割面 matching"（gate-counting + lightcone 因果可达，1D & 2D）均已完全
+> 自证**（`#print axioms` 仅标准公理）；唯一剩余的引用是 `pw = Θ(tw)`（把 stem 下界推广到一切
+> 收缩，已发表 grid 定理）。请评估：(a) 结构定理路线（路线 B）的发表价值与目标会议；
+> (b) 把唯一剩余引用 `pw=Θ(tw)` 也形式化的必要性与代价。
