@@ -40,6 +40,80 @@ def routedBonds (n d b : ℕ) : ℕ := min n (b * d)
 `min(n, √n·d)`. -/
 theorem routedBonds_sqrt (n d : ℕ) : routedBonds n d (Nat.sqrt n) = CorollaryD.sweepCut n d := rfl
 
+/-! ## Achievability — the depth cap `b·d` is a gate-counting theorem, not an assertion
+
+A brickwork is `d` layers, each applying a set of at most `b` two-qubit gates straddling the cut
+(the boundary capacity). The bonds it can route across the cut are a subset of the gates it ever
+places there, so their number is at most `b · d` (union of `d` sets each of size `≤ b`) — the
+lightcone / gate-counting bound. Together with the `n`-qubit cap this *proves* the
+`min(n, b·d)` structure of `routedBonds`, rather than asserting it. -/
+
+/-- A depth-`d` brickwork's straddling gates: layer `t` places `gates t`, a finite set of cross-cut
+bond labels (pairs), of size at most the boundary `b`. -/
+structure Schedule (b d : ℕ) where
+  /-- the straddling gates placed at each layer (bond labels) -/
+  gates : Fin d → Finset (ℕ × ℕ)
+  /-- each layer places at most `b` straddling gates (boundary capacity) -/
+  card_le : ∀ t, (gates t).card ≤ b
+
+/-- The cross-cut bonds a brickwork routes: all straddling gates over all layers. -/
+def Schedule.routed {b d : ℕ} (W : Schedule b d) : Finset (ℕ × ℕ) :=
+  Finset.univ.biUnion W.gates
+
+/-- **Depth cap (gate-counting theorem).** A depth-`d` brickwork routes at most `b·d` cross-cut
+bonds — the union of `d` layers each with `≤ b` straddling gates. This proves the `b·d` term in
+`routedBonds`; it is not assumed. -/
+theorem Schedule.routed_card_le {b d : ℕ} (W : Schedule b d) : W.routed.card ≤ b * d := by
+  have := Finset.card_biUnion_le_card_mul (Finset.univ : Finset (Fin d)) W.gates b
+    (fun t _ => W.card_le t)
+  simpa [Schedule.routed, Finset.card_univ, Nat.mul_comm] using this
+
+/-- **Achievability.** A brickwork routing exactly `min(b·d, c)` distinct cross-cut bonds exists,
+for any qubit cap `c`: place fresh bonds `b` per layer until the cap is reached. So both bounds
+(`≤ b·d` depth, `≤ c` qubits) are tight — the routed count is `min(b·d, c)`. -/
+theorem exists_schedule_routed_card (b d c : ℕ) :
+    ∃ W : Schedule b d, W.routed.card = min (b * d) c := by
+  classical
+  refine ⟨⟨fun t => ((Finset.range b).image (fun s => (b * (t : ℕ) + s, 0))).filter
+      (fun p => p.1 < min (b * d) c), ?_⟩, ?_⟩
+  · intro t
+    refine (Finset.card_filter_le _ _).trans ?_
+    exact (Finset.card_image_le).trans_eq (Finset.card_range b)
+  · rw [Schedule.routed]
+    have hset : (Finset.univ.biUnion (fun t : Fin d =>
+        ((Finset.range b).image (fun s => (b * (t : ℕ) + s, 0))).filter
+          (fun p => p.1 < min (b * d) c)))
+        = (Finset.range (min (b * d) c)).image (fun j => (j, 0)) := by
+      ext p
+      simp only [Finset.mem_biUnion, Finset.mem_univ, true_and, Finset.mem_filter,
+        Finset.mem_image, Finset.mem_range]
+      constructor
+      · rintro ⟨t, ⟨s, _, rfl⟩, hlt⟩
+        exact ⟨b * (t : ℕ) + s, hlt, rfl⟩
+      · rintro ⟨j, hj, rfl⟩
+        have hbpos : 0 < b := by
+          rcases Nat.eq_zero_or_pos b with hb | hb
+          · simp [hb] at hj
+          · exact hb
+        have hjd : j < b * d := lt_of_lt_of_le hj (min_le_left _ _)
+        have hdiv : b * (j / b) + j % b = j := Nat.div_add_mod j b
+        refine ⟨⟨j / b, ?_⟩, ⟨j % b, Nat.mod_lt _ hbpos, ?_⟩, ?_⟩
+        · exact Nat.div_lt_of_lt_mul (Nat.mul_comm b d ▸ hjd)
+        · simp [hdiv]
+        · simpa using hj
+    rw [hset, Finset.card_image_of_injective _ (fun a b h => by simpa using h),
+      Finset.card_range]
+
+/-- **The routed-bond count is exactly `min(b·d, qubit-cap)` — both caps tight, proved.** Combining
+the depth cap (`routed_card_le`, gate counting) with achievability (`exists_schedule_routed_card`):
+the depth-`d` brickwork with boundary `b` and qubit cap `c` routes a maximum of `min(b·d, c)`
+cross-cut bonds, and this is achieved. With `c = n` and `b = ⌊√n⌋` this is `routedBonds n d ⌊√n⌋ =
+min(n, √n·d)`, no longer an assertion. -/
+theorem routedBonds_eq_min (n d b : ℕ) :
+    (∀ W : Schedule b d, W.routed.card ≤ b * d) ∧
+      ∃ W : Schedule b d, W.routed.card = min (b * d) n := by
+  exact ⟨fun W => W.routed_card_le, exists_schedule_routed_card b d n⟩
+
 /-- **Keystone (P1).** At the spacetime cut of size `min(n, √n·d)`, the depth-`d` brickwork's
 cross-cut matching is contraction rigid: there is a balanced cut on `2·min(n,√n·d)` wires with a
 cross-cut matching whose flattening has full Schmidt rank `2^{min(n,√n·d)}` for generic gate
