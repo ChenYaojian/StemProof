@@ -68,4 +68,41 @@ theorem causal_matching_size (m d : ℕ) :
     ext i; simp [Finset.mem_filter, Finset.mem_range]
   rw [this, Finset.card_range]
 
+/-! ## 2D chip: the `√n·d` scale via row-wise reuse of the chain
+
+The 2D chip is `pathGraph (2m) □ pathGraph K` (cut direction `2m`, `K` rows). A cross-cut pair in
+row `b` is exactly a 1D chain pair along the cut axis, lifted by fixing the second coordinate
+(`Walk.boxProdLeft`). So the chain bound transfers row-by-row: each of the `K` rows contributes
+`min(m, d)` causally-reachable pairs, for a total `K · min(m, d)`. For a square chip
+(`K = 2m`, `n = 4m²`, boundary `√n = 2m`) this is `min(n/2, √n·d)` — the genuine `√n·d` scale, with
+each bond justified by an explicit within-row lightcone walk. -/
+
+/-- The `(i, b)` cross-cut pair of the 2D chip (row `b`, radius `i`) has a grid walk of length
+`2i+1`, obtained by fixing the row coordinate `b` and reusing the 1D chain walk along the cut
+axis. -/
+theorem grid_bond_walk (m K i : ℕ) (hi : i < m) (b : Fin K) :
+    ∃ p : (pathGraph (2 * m) □ pathGraph K).Walk
+        (⟨m - 1 - i, by omega⟩, b) (⟨m + i, by omega⟩, b), p.length = 2 * i + 1 := by
+  obtain ⟨q, hq⟩ := bond_walk m i hi
+  refine ⟨q.map (boxProdLeft (pathGraph (2 * m)) (pathGraph K) b).toHom, ?_⟩
+  exact (SimpleGraph.Walk.length_map
+    (f := (boxProdLeft (pathGraph (2 * m)) (pathGraph K) b).toHom) (p := q)).trans hq
+
+/-- **2D causal reachability.** For `i < d`, the row-`b` radius-`i` cross-cut pair is within grid
+distance `2d` — inside the depth-`d` lightcone. -/
+theorem grid_bond_causal (m K d i : ℕ) (him : i < m) (hid : i < d) (b : Fin K) :
+    (pathGraph (2 * m) □ pathGraph K).dist (⟨m - 1 - i, by omega⟩, b) (⟨m + i, by omega⟩, b)
+      ≤ 2 * d := by
+  obtain ⟨p, hp⟩ := grid_bond_walk m K i him b
+  calc (pathGraph (2 * m) □ pathGraph K).dist _ _ ≤ p.length := SimpleGraph.dist_le p
+    _ = 2 * i + 1 := hp
+    _ ≤ 2 * d := by omega
+
+/-- **2D causally-valid matching size = `K · min(m, d)`.** Over `K` rows, each contributing the
+`min(m, d)` causally-reachable radii (`grid_bond_causal`). For a square chip (`K = 2m`) this is
+`min(n/2, √n·d)` — the `√n·d` scale, every bond backed by a within-row lightcone walk. -/
+theorem grid_causal_matching_size (m K d : ℕ) :
+    ((Finset.range K) ×ˢ ((Finset.range m).filter (fun i => i < d))).card = K * min m d := by
+  rw [Finset.card_product, Finset.card_range, causal_matching_size]
+
 end FieldStemProof.Causal
