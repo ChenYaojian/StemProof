@@ -19,6 +19,7 @@ Layered targets:
 * `FieldStemProof.Bramble` — interval-Helly pathwidth lower bound (stem width ≥ bramble order)
 * `FieldStemProof.GridConn` — grid cross connectivity ⇒ self-contained pathwidth lower bound
 * `FieldStemProof.Brickwork` — keystone: deep brickwork routes a min(n,√n·d) cross-cut matching
+* `FieldStemProof.Causal` — causal reachability: cross-cut bonds within the depth-d lightcone
 -/
 import FieldStemProof.Defs
 import FieldStemProof.Gates
@@ -34,3 +35,4 @@ import FieldStemProof.Spacetime
 import FieldStemProof.Bramble
 import FieldStemProof.GridConn
 import FieldStemProof.Brickwork
+import FieldStemProof.Causal
