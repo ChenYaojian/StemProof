@@ -10,6 +10,8 @@
 
 \usepackage{listings}
 \usepackage{amsmath}
+\usepackage{tikz}
+\usetikzlibrary{patterns,arrows.meta,positioning,decorations.pathreplacing,calc}
 
 %% ---- Lean listings: minimal literate setup for the unicode we actually use ----
 \lstdefinelanguage{lean}{
@@ -97,28 +99,126 @@ Lean, Mathlib, pathwidth, brambles, Schwartz--Zippel, quantum circuit simulation
 
 %% ===================================================================
 \section{Introduction}\label{sec:intro}
-%% Narrative arc (one paragraph each):
-%% 1. THE PROBLEM. TN contraction cost is dictated by the order; TNCO is NP-hard on general
-%%    networks (scope the claim: hardness is for general graphs; planar/grid width is even
-%%    poly/known -- that is what makes lattices the *calibration* class, not the hard class).
-%%    Practice is heuristic search (hyper-optimized trees / annealing / community detection /
-%%    big-batch). A found order can be compared to other found orders -- and that is all.
-%%    The field has RELATIVE quality judgments only.
-%% 2. THE MISSING OBJECT. What is absent is an *absolute* yardstick: a trusted lower bound
-%%    L such that NO contraction order costs less than L. With such a floor, any heuristic
-%%    solution S acquires a certificate: cost(S)/L bounds its optimality gap. Without it,
-%%    "state of the art" means "best among the orders we happened to find".
-%% 3. WHY TRUST IS THE HARD PART. A cost floor has two failure modes: (i) the width bound
-%%    may be wrong (graph-theoretic lower-bound proofs are subtle and long); (ii) width may
-%%    not translate to cost -- low-rank intermediate tensors undercut the width proxy
-%%    (decision diagrams exploit exactly this). Hence: machine-checked, and both
-%%    ingredients certified. Key division of labor: the floor-hunting may be heuristic
-%%    (finding a good bramble is a search problem), but the resulting certificate is
-%%    absolute -- trust lives in the verified theorem, not in how the bramble was found.
-%% 4. THIS PAPER. Lean 4 framework delivering both ingredients + a faithful instantiation
-%%    on the calibration class; at Sycamore-53 scale the certificate is gap-free: the
-%%    certified floor meets the explicit sweep (cc = 54 exactly), so the found solution
-%%    carries a machine-checked optimality proof.
+
+Contracting a tensor network is the workhorse of classical quantum-circuit simulation, and
+its cost is governed almost entirely by one discrete choice: the \emph{contraction order}.
+Choosing well is hard --- finding an optimal order is NP-hard on general
+networks~\cite{markov2008simulating} --- so a decade of practice has produced a rich
+ecosystem of heuristics: hyper-optimized contraction trees~\cite{gray2021hyper},
+big-batch and index-slicing methods~\cite{pan2022solving}, stem-shaped orders for supremacy
+circuits~\cite{huang2020classical}, multi-stem refinements~\cite{swtnc2025}, and
+reuse-aware variants~\cite{kalachev2021recursive}. These tools are impressive, and they
+share one methodological blind spot: \textbf{every quality judgment they support is
+relative}. A new heuristic is validated by beating the previous one on a benchmark suite.
+How far \emph{either} order is from the true optimum is unknown, because nothing trustworthy
+bounds the optimum from below. ``State of the art'' means, literally, ``the best among the
+orders we happened to find'' (Fig.~\ref{fig:yardstick}).
+
+%% GEMINI-PROMPT (fallback if the TikZ below is replaced by an image):
+%% "A clean schematic diagram, vector style, white background. A vertical axis labeled
+%%  'contraction cost (log scale)'. On the upper part, three dots labeled 'order A', 'order B',
+%%  'order C (best found)' connected by short curved arrows with labels 'beats' -- illustrating
+%%  relative comparison. Below the dots, a large question-mark region labeled 'distance to
+%%  optimum: unknown'. At the bottom, a thick horizontal line labeled 'certified floor
+%%  (machine-checked theorem)' with the region below it hatched and labeled 'no contraction
+%%  order exists here'. On the right margin, a bracket showing the gap between 'order C' and
+%%  the floor labeled 'certified optimality gap'. Minimal colors: blue dots, red floor line,
+%%  gray hatching."
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[scale=0.9, font=\small]
+  % axis
+  \draw[-{Stealth}] (0,0) -- (0,4.6) node[left=2pt] {cost};
+  % hatched forbidden region
+  \fill[pattern=north east lines, pattern color=red!50] (0.15,0.2) rectangle (6.2,1.0);
+  \draw[red!70!black, very thick] (0.15,1.0) -- (6.2,1.0)
+    node[pos=0.4, above] {\textbf{certified floor} $L$ (theorem, machine-checked)};
+  \node[red!70!black] at (3.2,0.55) {no contraction order exists here};
+  % found orders
+  \fill[blue!70!black] (2.0,3.9) circle (2pt) node[right=3pt] {order $A$};
+  \fill[blue!70!black] (2.8,3.1) circle (2pt) node[right=3pt] {order $B$};
+  \fill[blue!70!black] (3.6,1.75) circle (2pt) node[right=3pt] {order $C$ (best found)};
+  \draw[-{Stealth}, gray] (2.15,3.8) to[bend left=20]
+    node[midway, right=1pt] {\scriptsize beats} (2.75,3.25);
+  \draw[-{Stealth}, gray] (2.95,3.0) to[bend left=20]
+    node[midway, right=1pt] {\scriptsize beats} (3.55,1.9);
+  % gap brace
+  \draw[decorate, decoration={brace, amplitude=4pt}] (5.9,1.75) -- (5.9,1.02)
+    node[midway, right=6pt, align=left] {\scriptsize certified\\[-2pt]\scriptsize gap};
+\end{tikzpicture}
+\caption{Relative vs.\ absolute evaluation of contraction orders. Heuristics can rank found
+orders against each other (top), but only a certified lower bound (bottom) turns the best
+found order into a solution with a provable optimality gap. On our calibration instance the
+floor \emph{meets} the found sweep: the gap is zero.}
+\label{fig:yardstick}
+\end{figure}
+
+What is missing is an \emph{absolute yardstick}: a trusted bound $L$ together with a proof
+that \emph{no} contraction order costs less than $L$. With such a floor, any found order $S$
+acquires a certificate --- $\mathrm{cost}(S)/L$ bounds its optimality gap --- exactly as an
+LP dual bound certifies a branch-and-bound incumbent, or an UNSAT certificate closes a SAT
+search. Nothing of this kind has existed for TNCO.
+
+Why not? Because a \emph{trustworthy} cost floor must survive three independent attacks, and
+each attack has historically been fatal (Fig.~\ref{fig:floors}). First, the graph-theoretic
+width bound underlying the floor may simply be wrong: lower-bound proofs in width theory are
+subtle, and an unverified bound certifies nothing. Second, width may fail to translate into
+cost: width counts indices of the largest intermediate tensor, and if that tensor has
+low-rank structure, a cleverer representation pays less --- decision-diagram simulators
+demonstrably break the width proxy on structured instances~\cite{dd2025treewidth}. Third,
+the translation must hold for the \emph{instances at hand}, not just in the worst case:
+random shallow circuits are classically easy despite large width~\cite{napp2022efficient}.
+Our response to all three is the same: make every link a machine-checked theorem, and split
+the labor so that \emph{search may be heuristic but trust never is} --- finding a good
+bramble (the dual certificate below) is a search problem; \emph{validating} one is a
+verified theorem.
+
+%% GEMINI-PROMPT (fallback):
+%% "A clean vertical stack of three rounded rectangles, vector style, like an architecture
+%%  diagram. Top box: 'Width floor -- bramble = dual certificate (interval Helly)', with a
+%%  crossed-out attack arrow labeled 'unverified graph bound'. Middle box: 'Cost floor --
+%%  cost(o) = sum of 2^|bag|', attack arrow crossed out labeled 'width is only a proxy'.
+%%  Bottom box: 'Compression floor -- Contraction Rigidity: generically no low-rank
+%%  factorization', attack arrow crossed out labeled 'decision-diagram / MPS escape'.
+%%  Right side annotations in monospace: theorem names grid_pathwidth_exact,
+%%  gridModel_cost_floor, no_compression. Muted professional colors."
+\begin{figure}[t]
+\centering
+\resizebox{\columnwidth}{!}{%
+\begin{tikzpicture}[font=\small,
+  atk/.style={-{Stealth}, thick, red!60!black}]
+  \node[draw, rounded corners, fill=blue!8, minimum width=6.4cm, align=center] (w) at (0,2.7)
+    {\textbf{width floor} --- bramble as dual certificate\\[-1pt]
+     {\scriptsize\ttfamily grid\_pathwidth\_exact}};
+  \node[draw, rounded corners, fill=orange!12, minimum width=6.4cm, align=center] (c) at (0,1.35)
+    {\textbf{cost floor} --- $\mathrm{cost}(o)=\sum_t 2^{|B_t|}$\\[-1pt]
+     {\scriptsize\ttfamily gridModel\_cost\_floor}};
+  \node[draw, rounded corners, fill=green!10, minimum width=6.4cm, align=center] (r) at (0,0)
+    {\textbf{compression floor} --- Contraction Rigidity\\[-1pt]
+     {\scriptsize\ttfamily ContractionRigid.no\_compression}};
+  \draw[atk] (-5.6,2.7) node[left, align=right, font=\scriptsize]
+    {unverified\\graph bound} -- (w.west);
+  \draw[atk] (-5.6,1.35) node[left, align=right, font=\scriptsize]
+    {width is\\only a proxy} -- (c.west);
+  \draw[atk] (-5.6,0) node[left, align=right, font=\scriptsize]
+    {low-rank\\escape (DD/MPS)} -- (r.west);
+  \foreach \y in {2.7,1.35,0} {\draw[red!60!black, thick]
+    (-4.55,\y-0.14) -- (-4.31,\y+0.14) (-4.55,\y+0.14) -- (-4.31,\y-0.14);}
+\end{tikzpicture}}
+\caption{A trustworthy cost floor blocks three attacks with three certified layers; each
+layer is a named Lean theorem with standard axioms only.}
+\label{fig:floors}
+\end{figure}
+
+This paper delivers that yardstick, formalized in Lean~4 over
+Mathlib~\cite{moura2021lean,mathlib2020}: $\sim$2{,}700 lines, 17 modules, no
+\texttt{sorry}, zero custom axioms --- \texttt{\#print axioms} of every theorem below
+reports only \texttt{propext}, \texttt{Classical.choice}, \texttt{Quot.sound}. The
+unconditional floors quantify over all \emph{sweep-style (stem)} orders --- the class that
+state-vector-like simulators and stem-shaped supremacy strategies actually
+populate~\cite{huang2020classical} --- and extend to arbitrary contraction trees under a
+single explicitly-stated published hypothesis ($\pw = \Theta(\tw)$ on lattices), carried in
+theorem statements rather than assumed globally.
 
 \paragraph{Contributions.}
 \begin{itemize}
@@ -166,22 +266,111 @@ Lean, Mathlib, pathwidth, brambles, Schwartz--Zippel, quantum circuit simulation
 
 %% ===================================================================
 \section{Background}\label{sec:background}
-%% Keep to ~1 page. Subsections:
-\subsection{TNCO in practice: heuristics with relative quality only}
-%% TNCO NP-hard; the working ecosystem: hyper-optimized trees (Gray--Kourtis / cotengra),
-%% big-batch / index slicing (Pan--Zhang), stem-shaped orders for supremacy circuits
-%% (Huang et al.), multi-stem (SW-TNC), subtree reuse (Kalachev et al.).
-%% Point sharply: every published "better order" claim is relative to other found orders;
-%% treewidth solvers give width numbers but unverified and without cost semantics.
-\subsection{Tensor networks and contraction width}
-%% Def: TN of a circuit, contraction tree, width; Markov-Shi cc = tw(L(G)) [cited, prose].
-%% Emphasize: our floors live in the *contraction-method* model (incl. slicing); the
-%% rank-collapse loophole (decision diagrams) is addressed by rigidity for generic values.
-\subsection{Stems, pathwidth, and the sweep cut}
-%% stem order == path decomposition; sweepCut n d = min(n, floor(sqrt n)*d);
-%% Sycamore numbers 10^18 / 10^24 as the benchmark instance we will certify.
+
+\subsection{Tensor networks, orders, and width}
+A quantum circuit compiles into a tensor network: one tensor per gate, one shared index per
+wire. Simulating the circuit means contracting the network to a scalar, and a
+\emph{contraction order} schedules the pairwise merges. The cost of an order is dominated by
+its widest intermediate tensor: an intermediate with $w$ open indices holds $2^w$ entries.
+Markov and Shi~\cite{markov2008simulating} identified the optimal width over all orders with
+the treewidth of the network's line graph, which pins the complexity of the
+\emph{contraction paradigm} (including index slicing, which trades memory for time but not
+total work). Two caveats scope everything that follows. The paradigm bound is not an
+unconditional hardness claim: representations exploiting \emph{value} structure ---
+stabilizer states, decision diagrams~\cite{dd2025treewidth} --- can beat width on structured
+instances, and shallow random 2D circuits are classically easy outright%
+~\cite{napp2022efficient}. Our floors therefore live in the contraction paradigm, and
+\S\ref{sec:rigidity} shows that for \emph{generic} tensor entries even the value-structure
+escape is closed. Second, NP-hardness of TNCO is a statement about general networks; on
+planar grids the width is textbook-known --- which is precisely what will qualify the
+lattice family as a \emph{calibration} class in \S\ref{sec:endtoend}.
+
+\subsection{Stem orders are path decompositions}
+The orders that dominate practice on supremacy-style circuits are
+\emph{stems}~\cite{huang2020classical}: a single growing tensor absorbs the network one
+piece at a time, exactly like a state vector swept through a circuit. In tree language the
+contraction tree is a caterpillar --- a spine with leaves. The combinatorial identity at
+the heart of this paper (Fig.~\ref{fig:stemsweep}) is that \textbf{a stem order is the same
+data as a path decomposition} of the network graph: the $t$-th bag $B_t$ is the boundary of
+the absorbed region after $t$ steps, the width of the order is the largest bag, and the
+optimal stem width is the pathwidth. This identity is what makes certified floors for stem
+orders tractable today: pathwidth lower bounds rest on \emph{interval} Helly
+(\S\ref{sec:bramble}), a one-dimensional argument, where treewidth would need the subtree
+Helly property that Mathlib does not yet have.
+
+%% GEMINI-PROMPT (fallback):
+%% "Two-panel scientific diagram, vector style. Left panel: a 5x5 grid of small circles
+%%  connected by lines (a lattice tensor network); a bold dashed vertical-ish frontier line
+%%  separates a shaded 'absorbed' region on the left from the rest; the circles on the
+%%  frontier are highlighted orange and labeled 'bag B_t = boundary'. An arrow labeled
+%%  'sweep' points rightward. Right panel: a caterpillar tree: a horizontal bold path of 6
+%%  nodes (the spine), each spine node with one or two small leaf nodes hanging below;
+%%  caption inside: 'stem contraction tree'. Between panels a double arrow labeled 'same
+%%  data'. Minimal colors: gray network, orange bag, blue spine."
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[scale=0.52, font=\scriptsize]
+  % ---- left: grid with sweep frontier ----
+  \begin{scope}
+    % absorbed region shading (columns 0-1, plus column 2 partially)
+    \fill[gray!15] (-0.4,-0.4) rectangle (1.45,4.4);
+    \foreach \x in {0,...,4} \foreach \y in {0,...,4} {
+      \draw[gray] (\x,\y) circle (1.6pt);
+      \ifnum\x<4 \draw[gray!70] (\x+0.08,\y) -- (\x+0.92,\y); \fi
+      \ifnum\y<4 \draw[gray!70] (\x,\y+0.08) -- (\x,\y+0.92); \fi
+    }
+    % frontier bag: column 2 vertices highlighted
+    \foreach \y in {0,...,4} \fill[orange] (2,\y) circle (2.6pt);
+    \draw[very thick, dashed, orange!80!black] (1.55,-0.5) -- (1.55,4.5);
+    \node[orange!80!black] at (2.0,5.05) {bag $B_t$ = frontier};
+    \node[gray!60!black] at (0.5,-1.0) {absorbed};
+    \draw[-{Stealth}, thick] (0.3,4.9) -- (1.3,4.9) node[midway, above] {sweep};
+  \end{scope}
+  % ---- middle: equivalence ----
+  \node at (6.3,2) {\Large$\;=\;$};
+  \node[align=center] at (6.3,2.8) {same\\data};
+  % ---- right: caterpillar tree ----
+  \begin{scope}[shift={(8.2,0)}]
+    \foreach \i in {0,...,5} \fill[blue!70!black] (\i*1.1,2.6) circle (2.6pt);
+    \foreach \i in {0,...,4} \draw[blue!70!black, very thick]
+      (\i*1.1+0.07,2.6) -- (\i*1.1+1.03,2.6);
+    \foreach \i/\n in {0/1,1/2,2/1,3/2,4/1,5/1} {
+      \ifnum\n=1
+        \draw[gray] (\i*1.1,2.52) -- (\i*1.1,1.7); \draw[gray] (\i*1.1,1.7) circle (1.6pt);
+      \else
+        \draw[gray] (\i*1.1,2.52) -- (\i*1.1-0.3,1.7); \draw[gray] (\i*1.1-0.3,1.7) circle (1.6pt);
+        \draw[gray] (\i*1.1,2.52) -- (\i*1.1+0.3,1.7); \draw[gray] (\i*1.1+0.3,1.7) circle (1.6pt);
+      \fi
+    }
+    \node[blue!70!black] at (2.75,3.25) {spine (growing tensor)};
+    \node[gray!60!black] at (2.75,1.1) {absorbed leaves};
+  \end{scope}
+\end{tikzpicture}
+\caption{A stem (caterpillar) contraction order \emph{is} a path decomposition: the spine's
+$t$-th intermediate tensor has exactly the frontier bag $B_t$ as its open indices. Width of
+the order $=$ largest bag; optimal stem width $=$ pathwidth.}
+\label{fig:stemsweep}
+\end{figure}
+
+\subsection{The sweep cut and the benchmark scale}
+For an $n$-qubit depth-$d$ lattice circuit the two canonical sweeps give cut sizes $n$
+(time sweep) and $\lfloor\sqrt{n}\rfloor\cdot d$ (space sweep), so the achievable width
+scale is $\mathrm{sweepCut}(n,d)=\min(n,\lfloor\sqrt{n}\rfloor d)$; at the Sycamore-53
+parameters $(n,d)=(53,20)$ this is $53$, and the folklore cost estimate
+$4\cdot 2^{53}\cdot 150 \approx 10^{18}$ is pure arithmetic that our development also
+certifies (\lstinline|CorollaryD|). Throughout, ``Sycamore-53 scale'' refers to these
+parameters; the lattice we instantiate is the deep-regime spacetime grid of a wire chain
+(\S\ref{sec:endtoend} discusses fidelity scope).
+
 \subsection{Lean 4 and Mathlib}
-%% One paragraph; version pins (Lean v4.30.0, Mathlib v4.30.0); #print axioms discipline.
+The development is built on Lean~4 and Mathlib (both pinned at v4.30.0), using
+\lstinline|SimpleGraph| box products for lattices, \lstinline|Finset| combinatorics for
+brambles and transversals, and \lstinline|MvPolynomial| with matrix determinants for the
+genericity engine. The auditing interface is \texttt{\#print axioms}: every theorem cited in
+this paper reports \texttt{[propext, Classical.choice, Quot.sound]} --- no custom axiom
+exists anywhere in the library, and the one literature input we rely on
+($\pw=\Theta(\tw)$ on lattices) appears as an explicit hypothesis \emph{inside} theorem
+statements, never as an ambient assumption.
 
 %% ===================================================================
 \section{The Formal Framework}\label{sec:framework}
@@ -211,6 +400,39 @@ theorem contraction_rigidity
     {T : QTensor I (MvPolynomial ι K)}
     (h : BulkEntangling p e T) : ContractionRigid p e T
 \end{lstlisting}
+
+%% GEMINI-PROMPT (fallback):
+%% "Schematic diagram, vector style: two columns of 4 qubits each (circles labeled L1..L4
+%%  and R1..R4), separated by a vertical dashed line labeled 'cut'. Each pair (Lj, Rj) is
+%%  connected by a bold edge labeled 'B_j, det != 0' (a two-qubit entangling bond). Below,
+%%  an equation-style annotation: 'flattening = B_1 (x) B_2 (x) B_3 (x) B_4, full rank 2^4'.
+%%  A side note: 'one full-rank configuration => full rank for all generic parameters
+%%  (Schwartz-Zippel)'. Minimal colors: blue bonds, gray qubits."
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[scale=0.75, font=\small]
+  \draw[dashed, thick] (2.1,-0.6) -- (2.1,3.6) node[above] {cut};
+  \foreach \y/\j in {0/4,1/3,2/2,3/1} {
+    \draw[fill=gray!15] (0.9,\y) circle (7pt) node {$L_{\j}$};
+    \draw[fill=gray!15] (3.3,\y) circle (7pt) node {$R_{\j}$};
+    \draw[blue!70!black, very thick] (1.16,\y) -- (3.04,\y)
+      node[midway, above] {\scriptsize $B_{\j}$};
+  }
+  \node[align=left, anchor=west] at (4.6,2.4)
+    {$\det B_j \neq 0$ for each bond};
+  \node[align=left, anchor=west] at (4.6,1.6)
+    {$\Rightarrow$ flattening $=\bigotimes_j B_j$};
+  \node[align=left, anchor=west] at (4.6,0.8)
+    {$\Rightarrow$ Schmidt rank $2^{k}$ at \emph{one} point};
+  \node[align=left, anchor=west] at (4.6,0.0)
+    {$\Rightarrow$ full rank \emph{generically} (SZ)};
+\end{tikzpicture}
+\caption{Kronecker routing reduces the rigidity hypothesis to combinatorics: a cross-cut
+perfect matching with nonsingular bonds makes the cut flattening a Kronecker product, hence
+full rank at one gate configuration --- and Schwartz--Zippel upgrades one point to all
+generic parameters. No probability enters.}
+\label{fig:matching}
+\end{figure}
 %% Punchline: the average-case question is *structural*, not probabilistic; the
 %% probability-zero corollary (C.3) is future work but follows from measure-zero varieties.
 
@@ -224,6 +446,42 @@ theorem contraction_rigidity
 %%    axiom) -- the genuine bramble condition, needed for augmented brambles.
 %% GridConn.lean: crosses are connected in the true grid (box-product walk embeddings);
 %% grid_pathwidth_lower_unconditional: k <= 2·maxBag, no hypotheses left.
+%% GEMINI-PROMPT (fallback):
+%% "Diagram, vector style: a horizontal row of 8 rectangles labeled B1..B8 (bags of a path
+%%  decomposition). Above them, three horizontal colored bars (blue, orange, green) at
+%%  different heights, each spanning a contiguous range of bags (blue spans B2-B6, orange
+%%  B4-B8, green B1-B5). All three bars overlap around B4-B5. A vertical dashed line drops
+%%  through bag B5, labeled 'common bag: meets every block (interval Helly)'. Caption
+%%  concept: connected blocks occupy bag-intervals; pairwise touching makes intervals
+%%  pairwise overlap; Helly for intervals yields one bag hitting all blocks."
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[scale=0.72, font=\scriptsize]
+  % bags
+  \foreach \i in {1,...,8} {
+    \draw[gray!60, fill=gray!8] (\i-0.42,0) rectangle (\i+0.42,0.7);
+    \node at (\i,0.35) {$B_{\i}$};
+  }
+  % interval bars
+  \draw[blue!70!black,   line width=3pt] (1.6,1.15) -- (6.4,1.15)
+    node[pos=0.1, above] {block $\beta_1$};
+  \draw[orange!85!black, line width=3pt] (3.6,1.6)  -- (8.4,1.6)
+    node[pos=0.9, above] {block $\beta_2$};
+  \draw[green!55!black,  line width=3pt] (0.6,2.05) -- (5.4,2.05)
+    node[pos=0.1, above] {block $\beta_3$};
+  % common bag
+  \draw[dashed, thick, red!70!black] (5,-0.35) -- (5,2.5);
+  \node[red!70!black, align=center] at (5,2.9)
+    {common bag (interval Helly):\\meets \emph{every} block $\Rightarrow$ $|B|\ge$ order};
+\end{tikzpicture}
+\caption{The pathwidth dual argument. A connected block meets the bags of a path
+decomposition along a contiguous \emph{interval} of indices; pairwise-touching blocks give
+pairwise-overlapping intervals; interval Helly (the maximal left endpoint) produces one bag
+meeting all blocks, so the largest bag is at least the bramble's transversal order. Only
+one-dimensional Helly is needed --- this is why stem-order floors are formalizable today.}
+\label{fig:helly}
+\end{figure}
+
 \begin{lstlisting}
 theorem grid_pathwidth_lower_unconditional (k : ℕ) (hk : 0 < k)
     (L : LinearBags (Fin k × Fin k)) (hlen : 0 < L.len)
@@ -242,6 +500,54 @@ theorem grid_pathwidth_lower_unconditional (k : ℕ) (hk : 0 < k)
 %%   projections): order ≥ k + 2.
 %% - Punchline: floor k+2 meets the sliding-window sweep exactly -- the grid stem
 %%   optimum is PINNED, and the sweep is provably optimal among stem orders.
+%% GEMINI-PROMPT (fallback):
+%% "Diagram of a 6x6 grid of circles (a (k+1)x(k+1) lattice with k=5). The top-left 5x5
+%%  subgrid is tinted light blue. One sample 'cross' inside the subgrid is highlighted:
+%%  all circles of subgrid-row i and subgrid-column j in saturated blue, meeting at (i,j).
+%%  The entire last row is red. The last column except its bottom-right corner is green.
+%%  Two short zigzag marks highlight edges where blue touches red and blue touches green
+%%  (adjacent but disjoint blocks). Side annotation: 'transversal must contain: 1 red +
+%%  1 green + (k) blue-region vertices, else some row i0 AND column j0 are both missed and
+%%  cross (i0,j0) is unhit => order >= k+2'."
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[scale=0.62, font=\scriptsize]
+  \def\k{5}
+  % subgrid tint
+  \fill[blue!6] (-0.45,0.55) rectangle (4.45,5.45);
+  % lattice edges
+  \foreach \x in {0,...,5} \foreach \y in {0,...,5} {
+    \ifnum\x<5 \draw[gray!50] (\x+0.1,\y) -- (\x+0.9,\y); \fi
+    \ifnum\y<5 \draw[gray!50] (\x,\y+0.1) -- (\x,\y+0.9); \fi
+  }
+  % base vertices
+  \foreach \x in {0,...,5} \foreach \y in {0,...,5} \draw[gray] (\x,\y) circle (1.7pt);
+  % sample cross: subgrid row y=3 and column x=2 (rows 1..5 are subgrid here; last row y=0)
+  \foreach \x in {0,...,4} \fill[blue!70!black] (\x,3) circle (2.6pt);
+  \foreach \y in {1,...,5} \fill[blue!70!black] (2,\y) circle (2.6pt);
+  \node[blue!70!black] at (0.85,4.6) {cross $(i,j)$};
+  % last row (y=0) red
+  \foreach \x in {0,...,5} \fill[red!75!black] (\x,0) circle (2.6pt);
+  \node[red!75!black] at (6.35,0) {last row};
+  % last column (x=5) minus corner green
+  \foreach \y in {1,...,5} \fill[green!55!black] (5,\y) circle (2.6pt);
+  \node[green!55!black] at (6.55,3.4) {last col.};
+  % touching marks
+  \draw[very thick, red!75!black]   (2,0.15) -- (2,0.85);
+  \draw[very thick, green!55!black] (4.15,3) -- (4.85,3);
+  \node[align=left, anchor=west] at (-0.2,-1.2)
+    {touching-only edges: crosses are \emph{disjoint} from the boundary blocks};
+\end{tikzpicture}
+\caption{The augmented bramble on the $(k{+}1)\times(k{+}1)$ grid: $k^2$ subgrid crosses
+(blue), the last row (red), and the last column minus the corner (green). Boundary blocks
+touch the crosses only through edges, which the touching-bramble bound
+(\lstinline|pathwidth_ge_order_of_touching|) handles via the edge-cover axiom. Counting: a
+transversal needs one red, one green, and $k$ subgrid vertices --- otherwise some row $i_0$
+\emph{and} some column $j_0$ are missed and cross $(i_0,j_0)$ is unhit --- so the order is
+$\ge k+2$, meeting the sweep exactly.}
+\label{fig:augmented}
+\end{figure}
+
 \begin{lstlisting}
 theorem grid_pathwidth_exact (k : ℕ) (hk : 0 < k)
     (L : LinearBags (Fin (k+1) × Fin (k+1))) (hlen : 0 < L.len)
@@ -259,6 +565,47 @@ theorem grid_pathwidth_exact (k : ℕ) (hk : 0 < k)
 %% window. cc = N+1 exactly (gridModel_cc_eq); optimum attained (Nat.sInf_mem);
 %% cost object: orderCost = Σ 2^|bag|; cost floor 2^{N+1} (gridModel_cost_floor);
 %% LatticePathwidthBound holds with C = 1 by construction (order space = stems).
+%% GEMINI-PROMPT (fallback):
+%% "Diagram: a 5x5 grid of circles with small numbers 0..24 written column-major (down each
+%%  column then next column). Circles with numbers < 8 are filled gray ('absorbed'). Circles
+%%  numbered 8..13 have bold orange rings ('window = bag, k+1 = 6 vertices'). Circles > 13
+%%  are white ('future'). A legend below. Concept: sweeping vertices in column-major order;
+%%  the bag at step t is the sliding window of positions [t, t+k]."
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[scale=0.62, font=\tiny]
+  \foreach \x in {0,...,4} \foreach \y in {0,...,4} {
+    \ifnum\x<4 \draw[gray!40] (\x+0.12,4-\y) -- (\x+0.88,4-\y); \fi
+    \ifnum\y<4 \draw[gray!40] (\x,4-\y-0.88) -- (\x,4-\y-0.12); \fi
+  }
+  \foreach \x in {0,...,4} \foreach \y in {0,...,4} {
+    \pgfmathtruncatemacro{\p}{\x*5+\y}
+    \ifnum\p<8
+      \draw[fill=gray!45] (\x,4-\y) circle (5pt); \node at (\x,4-\y) {\p};
+    \else\ifnum\p<14
+      \draw[line width=1.4pt, orange!90!black, fill=orange!12] (\x,4-\y) circle (5pt);
+      \node at (\x,4-\y) {\p};
+    \else
+      \draw (\x,4-\y) circle (5pt); \node at (\x,4-\y) {\p};
+    \fi\fi
+  }
+  \node[align=left, anchor=west, font=\scriptsize] at (5.0,3.4)
+    {\textcolor{gray}{$\bullet$} absorbed ($\mathrm{pos}<t$)};
+  \node[align=left, anchor=west, font=\scriptsize] at (5.0,2.6)
+    {\textcolor{orange!90!black}{$\circ$} bag $=$ window $[t,\,t{+}k]$};
+  \node[align=left, anchor=west, font=\scriptsize] at (5.0,1.8)
+    {$\circ$ future};
+  \node[align=left, anchor=west, font=\scriptsize] at (5.0,1.0)
+    {$|B_t| \le k{+}1$ (positions injective)};
+\end{tikzpicture}
+\caption{The sliding-window sweep (\texttt{sweepBags}, shown at $t=8$ on the $5\times5$
+grid): vertices are absorbed in column-major position order; the bag at step $t$ is the
+window of positions $[t, t+k]$ --- the live frontier plus the vertex being absorbed. Each
+window holds at most $k+1$ vertices, realizing the textbook grid pathwidth and meeting the
+floor of Fig.~\ref{fig:augmented}.}
+\label{fig:window}
+\end{figure}
+
 \begin{lstlisting}
 def gridModel (k : ℕ) : CircuitGraph where
   Order  := {L : LinearBags (Fin k × Fin k) // IsPathDecomp k L}
