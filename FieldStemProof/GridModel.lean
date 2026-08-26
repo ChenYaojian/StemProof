@@ -11,11 +11,11 @@ from the genuine spacetime lattice graph:
   quantity — nothing is postulated;
 * the **lower bound** `k ≤ 2 · width` for *every* order is the self-proved bramble theorem
   (`GridConn.grid_pathwidth_lower_unconditional`);
-* the **upper bound** is an explicit two-column sweep decomposition (`sweepBags`, the
-  state-vector sweep) of width `≤ 2k`.
+* the **upper bound** is an explicit sliding-window sweep decomposition (`sweepBags`, the
+  state-vector sweep boundary) of width `≤ k + 1` — the textbook grid pathwidth.
 
-Hence the model's `pw = cc` is genuinely pinned to `Θ(k)` — `k/2 ≤ pw ≤ 2k` — by machine-checked
-bounds on a real graph, and the stem optimum is *attained* (`Nat.sInf_mem`).
+Hence the model's `pw = cc` is genuinely pinned to `Θ(k)` — `k/2 ≤ pw ≤ k + 1` — by
+machine-checked bounds on a real graph, and the stem optimum is *attained* (`Nat.sInf_mem`).
 
 Honest scope: `IsStem ≡ True` here is *definitional*, not degenerate — the order space of this
 model consists exactly of the linear (stem) orders; extending the lower bound to arbitrary tree
@@ -56,16 +56,38 @@ theorem IsPathDecomp.len_pos {k : ℕ} (hk : 0 < k) {L : LinearBags (Fin k × Fi
   obtain ⟨i, _⟩ := h.cov (⟨0, hk⟩, ⟨0, hk⟩)
   exact i.pos
 
-/-! ## The explicit sweep decomposition (upper bound): two adjacent slices per bag -/
+/-! ## The explicit sweep decomposition (tight upper bound): a `k + 1` sliding window
 
-/-- The state-vector sweep as a path decomposition: bag `t` holds slices `t` and `t+1` of the
-first coordinate (the boundary of the sweep at step `t`). -/
+The state-vector sweep absorbs vertices in column-major order; at each step the live boundary is
+the last `k` absorbed vertices plus the current one — a sliding window of `k + 1` consecutive
+positions. This realizes the textbook grid pathwidth upper bound `pw ≤ k` (bag size `k + 1`),
+matching the sweep-cut narrative (`cut + 1`). -/
+
+/-- Column-major position of a grid vertex: the order in which the sweep absorbs vertices
+(first coordinate fast). -/
+def pos {k : ℕ} (p : Fin k × Fin k) : ℕ := p.1.val + k * p.2.val
+
+theorem pos_lt {k : ℕ} (p : Fin k × Fin k) : pos p < k * k :=
+  calc pos p < k + k * p.2.val := Nat.add_lt_add_right p.1.isLt _
+    _ = k * (p.2.val + 1) := by ring
+    _ ≤ k * k := Nat.mul_le_mul_left k p.2.isLt
+
+theorem pos_inj {k : ℕ} {p q : Fin k × Fin k} (h : pos p = pos q) : p = q := by
+  have hk : 0 < k := p.1.pos
+  have h1 : ∀ r : Fin k × Fin k, pos r % k = r.1.val := fun r => by
+    rw [pos, Nat.add_mul_mod_self_left, Nat.mod_eq_of_lt r.1.isLt]
+  have h2 : ∀ r : Fin k × Fin k, pos r / k = r.2.val := fun r => by
+    rw [pos, Nat.add_mul_div_left _ _ hk, Nat.div_eq_of_lt r.1.isLt, Nat.zero_add]
+  exact Prod.ext (Fin.ext (by rw [← h1 p, ← h1 q, h])) (Fin.ext (by rw [← h2 p, ← h2 q, h]))
+
+/-- The sweep as a path decomposition: bag `t` is the window of positions `[t, t + k]` — the
+sweep boundary (last `k` absorbed vertices) plus the vertex being absorbed. -/
 def sweepBags (k : ℕ) : LinearBags (Fin k × Fin k) where
-  len := k
-  bag := fun t => Finset.univ.filter fun p => p.1.val = t.val ∨ p.1.val = t.val + 1
+  len := k * k
+  bag := fun t => Finset.univ.filter fun p => t.val ≤ pos p ∧ pos p ≤ t.val + k
 
-theorem mem_sweepBags {k : ℕ} {t : Fin k} {p : Fin k × Fin k} :
-    p ∈ (sweepBags k).bag t ↔ p.1.val = t.val ∨ p.1.val = t.val + 1 := by
+theorem mem_sweepBags {k : ℕ} {t : Fin (k * k)} {p : Fin k × Fin k} :
+    p ∈ (sweepBags k).bag t ↔ t.val ≤ pos p ∧ pos p ≤ t.val + k := by
   simp [sweepBags]
 
 /-- The sweep is a genuine path decomposition of the grid graph. -/
@@ -77,45 +99,47 @@ theorem sweepBags_isPathDecomp (k : ℕ) : IsPathDecomp k (sweepBags k) where
     omega
   edge := by
     intro x y hxy
-    rcases (SimpleGraph.boxProd_adj).mp hxy with ⟨h1, _⟩ | ⟨_, h1⟩
-    · -- first coordinates adjacent on the path: both slices fit in the lower one's bag
+    -- both endpoints of an edge differ in position by 1 (vertical) or k (horizontal);
+    -- the window at the smaller position contains both
+    have key : ∀ (u v : Fin k × Fin k) (d : ℕ), d ≤ k → pos v = pos u + d →
+        ∃ m, u ∈ (sweepBags k).bag m ∧ v ∈ (sweepBags k).bag m := by
+      intro u v d hd hpos
+      exact ⟨⟨pos u, pos_lt u⟩,
+        mem_sweepBags.mpr ⟨by show pos u ≤ pos u; omega, by show pos u ≤ pos u + k; omega⟩,
+        mem_sweepBags.mpr ⟨by show pos u ≤ pos v; omega, by show pos v ≤ pos u + k; omega⟩⟩
+    have hk : 0 < k := x.1.pos
+    rcases (SimpleGraph.boxProd_adj).mp hxy with ⟨h1, h2⟩ | ⟨h1, h2⟩
+    · -- vertical edge: first coordinates adjacent, second equal — position difference 1
       rcases (SimpleGraph.pathGraph_adj).mp h1 with h | h
-      · exact ⟨x.1, mem_sweepBags.mpr (Or.inl rfl), mem_sweepBags.mpr (Or.inr h.symm)⟩
-      · exact ⟨y.1, mem_sweepBags.mpr (Or.inr h.symm), mem_sweepBags.mpr (Or.inl rfl)⟩
-    · -- first coordinates equal: same slice, same bag
-      exact ⟨x.1, mem_sweepBags.mpr (Or.inl rfl), mem_sweepBags.mpr (Or.inl (by rw [h1]))⟩
-  cov := fun v => ⟨v.1, mem_sweepBags.mpr (Or.inl rfl)⟩
+      · exact key x y 1 hk (by rw [pos, pos, ← h, ← h2]; ring)
+      · obtain ⟨m, hm1, hm2⟩ := key y x 1 hk (by rw [pos, pos, ← h, h2]; ring)
+        exact ⟨m, hm2, hm1⟩
+    · -- horizontal edge: second coordinates adjacent, first equal — position difference k
+      rcases (SimpleGraph.pathGraph_adj).mp h1 with h | h
+      · exact key x y k (le_refl k) (by rw [pos, pos, ← h, ← h2]; ring)
+      · obtain ⟨m, hm1, hm2⟩ := key y x k (le_refl k) (by rw [pos, pos, ← h, h2]; ring)
+        exact ⟨m, hm2, hm1⟩
+  cov := fun v =>
+    ⟨⟨pos v, pos_lt v⟩,
+      mem_sweepBags.mpr ⟨by show pos v ≤ pos v; omega, by show pos v ≤ pos v + k; omega⟩⟩
 
-/-- Each sweep bag holds at most two slices: `card ≤ 2k`. -/
-theorem sweepBags_card_le (k : ℕ) (t : Fin k) : ((sweepBags k).bag t).card ≤ 2 * k := by
+/-- Each window bag holds at most `k + 1` vertices (positions are injective, the window has
+`k + 1` slots). -/
+theorem sweepBags_card_le (k : ℕ) (t : Fin (k * k)) :
+    ((sweepBags k).bag t).card ≤ k + 1 := by
   classical
-  have hsub : (sweepBags k).bag t ⊆
-      (Finset.univ.filter fun p : Fin k × Fin k => p.1.val = t.val) ∪
-        (Finset.univ.filter fun p : Fin k × Fin k => p.1.val = t.val + 1) := by
-    intro p hp
-    rcases mem_sweepBags.mp hp with h | h
-    · exact Finset.mem_union_left _ (Finset.mem_filter.mpr ⟨Finset.mem_univ _, h⟩)
-    · exact Finset.mem_union_right _ (Finset.mem_filter.mpr ⟨Finset.mem_univ _, h⟩)
-  have hslice : ∀ c : ℕ,
-      (Finset.univ.filter fun p : Fin k × Fin k => p.1.val = c).card ≤ k := by
-    intro c
-    have hinj : Set.InjOn (Prod.snd : Fin k × Fin k → Fin k)
-        ↑(Finset.univ.filter fun p : Fin k × Fin k => p.1.val = c) := by
-      intro p hp q hq hpq
-      simp only [Finset.coe_filter, Finset.mem_univ, Set.mem_setOf_eq, true_and] at hp hq
-      exact Prod.ext (Fin.ext (hp.trans hq.symm)) hpq
-    calc (Finset.univ.filter fun p : Fin k × Fin k => p.1.val = c).card
-        = ((Finset.univ.filter fun p : Fin k × Fin k => p.1.val = c).image Prod.snd).card :=
-          (Finset.card_image_of_injOn hinj).symm
-      _ ≤ (Finset.univ : Finset (Fin k)).card := Finset.card_le_card (Finset.subset_univ _)
-      _ = k := by rw [Finset.card_univ, Fintype.card_fin]
+  have hinj : Set.InjOn (pos : Fin k × Fin k → ℕ) ↑((sweepBags k).bag t) :=
+    fun p _ q _ h => pos_inj h
   calc ((sweepBags k).bag t).card
-      ≤ _ := Finset.card_le_card hsub
-    _ ≤ _ + _ := Finset.card_union_le _ _
-    _ ≤ k + k := Nat.add_le_add (hslice _) (hslice _)
-    _ = 2 * k := by ring
+      = (((sweepBags k).bag t).image pos).card := (Finset.card_image_of_injOn hinj).symm
+    _ ≤ (Finset.Icc t.val (t.val + k)).card := by
+        apply Finset.card_le_card
+        intro n hn
+        obtain ⟨p, hp, rfl⟩ := Finset.mem_image.mp hn
+        exact Finset.mem_Icc.mpr (mem_sweepBags.mp hp)
+    _ = k + 1 := by rw [Nat.card_Icc]; omega
 
-theorem sweepBags_width_le (k : ℕ) : bagsWidth (sweepBags k) ≤ 2 * k :=
+theorem sweepBags_width_le (k : ℕ) : bagsWidth (sweepBags k) ≤ k + 1 :=
   Finset.sup_le fun t _ => sweepBags_card_le k t
 
 /-! ## The faithful model -/
@@ -142,15 +166,15 @@ theorem gridModel_width_lower (k : ℕ) (hk : 0 < k) (o : (gridModel k).Order) :
   rwa [show (gridModel k).width ⟨L, hL⟩ = bagsWidth L from rfl,
     bagsWidth_eq_maxBag L hlen]
 
-/-- **Real upper bound**: the sweep order has width `≤ 2k`. -/
+/-- **Real upper bound**: the sweep order has width `≤ k + 1` (the textbook grid pathwidth). -/
 theorem gridModel_width_upper (k : ℕ) :
-    ∃ o : (gridModel k).Order, (gridModel k).width o ≤ 2 * k :=
+    ∃ o : (gridModel k).Order, (gridModel k).width o ≤ k + 1 :=
   ⟨⟨sweepBags k, sweepBags_isPathDecomp k⟩, sweepBags_width_le k⟩
 
-/-- The model's contraction optimum is genuinely pinned: `k ≤ 2 · cc` and `cc ≤ 2k` — `Θ(k)`,
-with both bounds machine-checked on the real graph. -/
+/-- The model's contraction optimum is genuinely pinned: `k ≤ 2 · cc` and `cc ≤ k + 1` — `Θ(k)`
+with tight upper constant, both bounds machine-checked on the real graph. -/
 theorem gridModel_cc_bounds (k : ℕ) (hk : 0 < k) :
-    k ≤ 2 * (gridModel k).cc ∧ (gridModel k).cc ≤ 2 * k := by
+    k ≤ 2 * (gridModel k).cc ∧ (gridModel k).cc ≤ k + 1 := by
   have hne : (Set.range (gridModel k).width).Nonempty :=
     ⟨_, ⟨⟨sweepBags k, sweepBags_isPathDecomp k⟩, rfl⟩⟩
   constructor

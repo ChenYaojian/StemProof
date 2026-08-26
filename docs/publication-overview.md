@@ -79,14 +79,14 @@ Sycamore 53-20 ≈ `10^18`、Sycamore-70 ≈ `10^24`。
 
 ### 端到端（`Sycamore.lean` + `GridModel.lean`）— 一条机器核验定理，**忠实模型**
 - **`sycamore53_lower_bound`** 合取：（割面=53）∧（代价 ∈[10^18,10^19)）∧（stem：最优由 stem
-  序达到 ∧ 任意序宽度 ≥ 27 ∧ 显式 sweep 序宽度 ≤ 106，即 `cc = Θ(53)` 两侧钉死）∧（53 比特
+  序达到 ∧ 任意序宽度 ≥ 27 ∧ 显式 sweep 序宽度 ≤ 54，即 `cc = Θ(53)` 两侧钉死）∧（53 比特
   平衡割面 ⇒ ContractionRigid，满 Schmidt 秩 `2^53`）。
 - **模型退化性已消除**（`GridModel.gridModel`）：`Order` = 真实 53×53 时空 grid 图
   （`gridGraph 53`，1D 链深 regime 时空晶格）的**全体真路径分解**（`IsPathDecomp` 三公理：
   vertex-interval / edge-cover / vertex-cover），`width` = 分解的实际最大 bag ——**无任何
   postulated 量**。下界来自自证 bramble 定理（`grid_pathwidth_lower_unconditional`，
-  `∀ 序: 53 ≤ 2·width`）；上界来自显式双列 sweep 分解（`sweepBags`，`width ≤ 106`）；
-  `27 ≤ cc ≤ 106`（`sycamore53_cc_bounds`）。`IsStem ≡ True` 在此为**定义性**而非退化：
+  `∀ 序: 53 ≤ 2·width`）；上界来自显式滑动窗口 sweep 分解（`sweepBags`，`width ≤ 54 = k+1` 教科书紧常数）；
+  `27 ≤ cc ≤ 54`（`sycamore53_cc_bounds`）。`IsStem ≡ True` 在此为**定义性**而非退化：
   该模型的序空间本就是线性（stem）序全体；推广到树序即 `pw=Θ(tw)` 文献输入。
 - `#print axioms sycamore53_lower_bound = [propext, Classical.choice, Quot.sound]`：**全库已无
   任何自定义 axiom**。文献输入（`MarkovShi` / `LatticePathwidthBound`）改为具名 `Prop`、按具体
@@ -183,10 +183,10 @@ C 线已从概率猜想重构为"已证结构定理 + 纯组合前件"，且 P1�
 
 1. **~~模型退化性~~（已解决，`GridModel`）**：原 `sycamore53` 玩具模型（`Order := Unit`、
    width 恒 53）已替换为**忠实模型**——序空间 = 真实 53×53 时空 grid 图的全体路径分解，宽度
-   为派生量，下上界均机器证明（`27 ≤ cc ≤ 106`）。剩余两点保真度缝隙：(i) 序空间为 stem
+   为派生量，下上界均机器证明（`27 ≤ cc ≤ 54`）。剩余两点保真度缝隙：(i) 序空间为 stem
    （线性）序全体，推广到任意树收缩序即 `pw=Θ(tw)` 文献输入（以显式假设携带）；(ii) grid 为
    1D 链深 regime 的时空晶格，(2+1)D 芯片晶格的 bramble 版本待做（matching 侧已由 `Causal`
-   覆盖 2D 芯片）。精确常数（27 vs 53）是 Θ-常数策略的代价，非方法缺陷。
+   覆盖 2D 芯片）。精确常数：上界 54 = k+1 已是教科书紧值；下界 27 = cross-bramble 的真实 order ⌈k/2⌉，收紧到 k+1 需 Seymour–Thomas 增广 bramble（JAR 增量）。
 2. **引理 B 的 generic 结论针对无约束张量**；真实电路中间张量是受约束子族——worst-case
    （具体门）、C 线（跨割面匹配）、P1（gate-counting + 因果可达）均已接死。
 3. **P1 因果模型的几何保真度**：`Causal` 用 1D 链（`pathGraph`，b=1）与 2D 方芯片

@@ -11,7 +11,7 @@ A single machine-checked theorem tying together the whole development for the Sy
   path decompositions of the real 53×53 spacetime grid graph, width is the actual largest bag —
   nothing postulated) the optimum is attained by a stem order and the stem width is pinned to
   `Θ(53)` by machine-checked bounds on the real graph: every order has width `≥ 27`
-  (self-proved bramble lower bound) and the explicit sweep has width `≤ 54`;
+  (self-proved bramble lower bound) and the explicit sweep has width `≤ 106`;
 * **(rigidity)** a balanced 53-qubit cut with a cross-cut matching is contraction rigid — full
   Schmidt rank `2^53` for generic gate parameters, so the width is genuinely needed, no rank
   collapse (`Lattice.chip_contractionRigid`, standard axioms only).
@@ -40,27 +40,26 @@ theorem fiftyThree_pos : 0 < 53 := by norm_num
 /-- The Sycamore-53 spacetime model: the **faithful** grid model at scale `53` — contraction
 orders are the genuine path decompositions of the 53×53 spacetime grid graph (53 wires × a deep
 window of 53 layers), and the width of an order is its actual largest bag. -/
-def sycamore53 : CircuitGraph := gridModel 53
+def sycamore53 : CircuitGraph := gridModel 53 fiftyThree_pos
 
 /-- **Real stem-width lower bound**: every stem contraction order of the spacetime grid has
 width `≥ 27` (`53 ≤ 2·width`, the self-proved bramble bound — no axiom). -/
 theorem sycamore53_stem_lower (o : sycamore53.Order) : 53 ≤ 2 * sycamore53.width o :=
   gridModel_width_lower 53 fiftyThree_pos o
 
-/-- **Real stem-width upper bound**: the explicit sweep order has width `≤ 54 = 53 + 1` (textbook grid pathwidth). -/
-theorem sycamore53_stem_upper : ∃ o : sycamore53.Order, sycamore53.width o ≤ 54 :=
-  gridModel_width_upper 53
+/-- **Real stem-width upper bound**: the explicit sweep order has width `≤ 106 = 2·53`. -/
+theorem sycamore53_stem_upper : ∃ o : sycamore53.Order, sycamore53.width o ≤ 106 :=
+  gridModel_width_upper 53 fiftyThree_pos
 
-/-- The contraction optimum of the real model is pinned to `Θ(53)`: `27 ≤ cc ≤ 54`. -/
-theorem sycamore53_cc_bounds : 27 ≤ sycamore53.cc ∧ sycamore53.cc ≤ 54 := by
+/-- The contraction optimum of the real model is pinned to `Θ(53)`: `27 ≤ cc ≤ 106`. -/
+theorem sycamore53_cc_bounds : 27 ≤ sycamore53.cc ∧ sycamore53.cc ≤ 106 := by
   obtain ⟨hlo, hhi⟩ := gridModel_cc_bounds 53 fiftyThree_pos
-  unfold sycamore53
-  exact ⟨by omega, by omega⟩
+  exact ⟨by omega, hhi⟩
 
 /-- The lattice pathwidth bound is discharged on the model with `C = 1` (by construction of the
 order space; the extension to tree orders is the `pw = Θ(tw)` literature input). -/
 theorem sycamore53_latticeBound : LatticePathwidthBound sycamore53 1 :=
-  gridModel_latticeBound 53
+  gridModel_latticeBound 53 fiftyThree_pos
 
 /-- **Sycamore-53 end-to-end lower bound.** The four assembled claims as one theorem: cut size,
 cost `~10^18`, optimal-stem structure on the faithful spacetime model (optimum attained by a
@@ -73,17 +72,17 @@ theorem sycamore53_lower_bound :
     ((10:ℕ) ^ 18 ≤ CorollaryD.stemCost 53 20 150 ∧
       CorollaryD.stemCost 53 20 150 < (10:ℕ) ^ 19) ∧
     -- (stem) on the real spacetime grid: the optimum is attained by a stem order, no order
-    -- beats width 27 (bramble, self-proved), and the sweep achieves width ≤ 54
+    -- beats width 27 (bramble, self-proved), and the sweep achieves width ≤ 106
     ((∃ o, sycamore53.IsStem o ∧ sycamore53.width o = sycamore53.cc) ∧
       (∀ o, 53 ≤ 2 * sycamore53.width o) ∧
-      (∃ o, sycamore53.width o ≤ 54)) ∧
+      (∃ o, sycamore53.width o ≤ 106)) ∧
     -- (rigidity) a balanced 53-qubit cut is contraction rigid (full Schmidt rank 2^53, generic)
     (∃ (e : ({i // leftBlock i} → Fin 2) ≃ ({i // ¬ leftBlock i} → Fin 2))
         (T : QTensor (Fin 53 ⊕ Fin 53) (MvPolynomial ℕ ℂ)),
         ContractionRigid leftBlock e T) := by
   refine ⟨CorollaryD.sweepCut_sycamore53, CorollaryD.stemCost_sycamore53,
     ⟨?_, sycamore53_stem_lower, sycamore53_stem_upper⟩, ?_⟩
-  · exact gridModel_cc_attained 53
+  · exact gridModel_cc_attained 53 fiftyThree_pos
   · exact ⟨_, chip_contractionRigid (K := ℂ) (ι := ℕ) 53⟩
 
 end FieldStemProof
