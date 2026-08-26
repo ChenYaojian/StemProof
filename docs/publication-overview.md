@@ -81,9 +81,10 @@ Sycamore 53-20 ≈ `10^18`、Sycamore-70 ≈ `10^24`。
 - **`sycamore53_lower_bound`** 合取：（割面=53）∧（代价 ∈[10^18,10^19)）∧（最优路径具 stem
   结构，宽度 ≤ C·cc=53）∧（53 比特平衡割面 ⇒ ContractionRigid，满 Schmidt 秩 `2^53`）。
 - `sycamore53 : CircuitGraph` 具体模型，`sycamore53_cc` 真证 cc=53。
-- `#print axioms sycamore53_lower_bound = [propext, Classical.choice, Quot.sound,
-  latticePathwidthBound, latticePathwidthConst]`：代价/割面/刚性三部分仅标准公理；仅
-  stem-最优性依赖那条已发表 grid 定理。`markovShi` 未用到。
+- `#print axioms sycamore53_lower_bound = [propext, Classical.choice, Quot.sound]`：**全库已无
+  任何自定义 axiom**。文献输入（`MarkovShi` / `LatticePathwidthBound`）改为具名 `Prop`、按具体
+  模型供给；在 `sycamore53` 具体模型上 `pw = cc = 53`（`sycamore53_pw`），lattice 界以 `C = 1`
+  **由计算兑现**，端到端定理成为无条件机器定理（模型保真度缝隙见 §4）。
 
 ### stem 宽度下界（`Bramble` / `GridConn`，**自证，零自定义 axiom**）
 原本作为引用 axiom 的"最优割面不能更小"（grid treewidth 下界），现对 **stem/pathwidth 宽度
@@ -128,23 +129,28 @@ bramble scale。三层，全部 `#print axioms` 仅标准公理：
 
 ---
 
-## 2. 依赖已发表定理（显式 axiom，注明出处）
+## 2. 依赖已发表定理（显式假设 `Prop`，注明出处；**全库零自定义 axiom**）
 
-经 bramble 下界自证后，**唯一剩余的自定义 axiom 是 `pw = Θ(tw)`（"stem 是全局最优"）**：把
+> **soundness 修正（2026-08）**：原先三条全局 `axiom`（`markovShi` / `latticePathwidthBound` /
+> `treewidthLowerBound`）量化在字段自由的抽象结构上，均可被对抗实例证伪（Lean 内可推出
+> `False`，已构造验证）。现已全部改写为**具名 `Prop` / 定理显式假设**，按具体模型供给；
+> `grep "^axiom"` 全库为空。
+
+经 bramble 下界自证后，**唯一剩余的文献输入是 `pw = Θ(tw)`（"stem 是全局最优"）**：把
 已自证的"stem 宽度 ≥ Θ(min)"推广到"一切（树）收缩也不更省"。这是一条**已发表、已严格证明**
 的结果，Mathlib 尚未收录且无可导入的形式化版本（唯一的 treewidth 形式化在 Coq，Lean 无法
 引用）：
 
-| Axiom | 文献 | 内容 | 状态 |
+| 具名 `Prop` / 假设 | 文献 | 内容 | 状态 |
 |---|---|---|---|
-| `markovShi` | Markov & Shi, *SIAM J. Comput.* 38(3), 2008 (quant-ph/0511069) | `cc(G) = tw(L(G))`，收缩宽度 = 线图 treewidth | 引用（端到端定理用） |
-| `latticePathwidthBound` | 经典 grid `pw=tw`（Seymour–Thomas bramble）；Kozawa–Otachi–Yamazaki | 晶格 `pw ≤ C·cc`（即 tw ≥ Θ(pw)，stem 全局最优） | 引用 |
-| ~~grid treewidth 下界 `tw ≥ Θ(min)`~~ | ~~Kozawa–Otachi–Yamazaki~~ | ~~割面不能更小~~ | **已自证**（§1 Bramble/GridConn，对 stem/pathwidth） |
+| `MarkovShi G` | Markov & Shi, *SIAM J. Comput.* 38(3), 2008 (quant-ph/0511069) | `cc(G) = tw(L(G))`，收缩宽度 = 线图 treewidth | 具名 `Prop`（按模型供给；端到端定理未用） |
+| `LatticePathwidthBound G C` | 经典 grid `pw=tw`（Seymour–Thomas bramble）；Kozawa–Otachi–Yamazaki | 晶格 `pw ≤ C·cc`（stem 全局最优） | 具名 `Prop`；**在 `sycamore53` 模型上以 `C=1` 由计算兑现** |
+| `optimalWidth_eq_min` 的 `hlow` | Kozawa–Otachi–Yamazaki；Seymour–Thomas | 一切收缩宽度 ≥ `min(n,√n·d)` | 显式假设；stem/pathwidth 方向已自证（`GridConn`） |
 
 明确区分两个不同命题：**"stem 宽度 ≥ Θ(min)"已自证**（任何 stem 收缩不能更省）；仍引用的是
-**"最优树收缩 ≤ stem"（pw=Θ(tw)）**，把下界从 stem 推广到一切收缩路径。把已证定理作为带出处的
-axiom 引用，是标准的 "cite, don't reprove" 实践。整份发展因此**条件性地建立在已确立的数学之
-上**，而非建立在未证猜想之上。
+**"最优树收缩 ≤ stem"（pw=Θ(tw)）**，把下界从 stem 推广到一切收缩路径。文献输入以显式假设
+出现在定理签名里（而非全局 axiom），是比 "cite as axiom" 更强的实践：`#print axioms` 全库仅
+标准公理，引用之处在陈述中可见。
 
 ---
 
@@ -154,8 +160,9 @@ C 线已从概率猜想重构为"已证结构定理 + 纯组合前件"，且 P1�
 前件已大体兑现（`Brickwork` + `Causal`，见 §1）。剩余开放项只有两条，均**不再是随机矩阵 /
 谱分析**：
 
-1. **`pw = Θ(tw)`（唯一剩余引用 axiom）**：把已自证的"stem(pathwidth) 宽度 ≥ Θ(min)"推广到
-   "一切(树)收缩也不更省"。需子树 Helly + 树分解理论（Mathlib 缺）。这是 §2 唯一剩余的引用。
+1. **`pw = Θ(tw)`（唯一剩余文献输入，以显式假设出现）**：把已自证的"stem(pathwidth) 宽度 ≥
+   Θ(min)"推广到"一切(树)收缩也不更省"。需子树 Helly + 树分解理论（Mathlib 缺）。形式化它可
+   把该假设从定理签名中彻底移除（见 §6）。
 2. **C.3 概率 corollary**：`Pr(rank collapse) = 0`（坏集零测度的直接推论），目前仅在 spec
    陈述，尚未形式化。
 
@@ -167,9 +174,11 @@ C 线已从概率猜想重构为"已证结构定理 + 纯组合前件"，且 P1�
 
 ## 4. 已知"模型 vs 完整命题"的缝隙（诚实标注）
 
-1. **Theorem A 的 stem-最优性经具体 `sycamore53` 模型实例化**（`cc=53` 真证），但该模型的
-   width 取常值以使 `cc=53` 干净成立；把它换成真实时空晶格图的逐序 width 计算，需要在 Lean
-   里自建 treewidth 理论（Mathlib 无）——这正是 §2 剩余 grid axiom 承担的部分。
+1. **Theorem A 的 stem-最优性经具体 `sycamore53` 模型实例化**（`cc=53`、`pw=53` 真证，lattice
+   界以 `C=1` 由计算兑现），但该模型的 width 取常值以使 `cc=53` 干净成立——端到端定理的 stem
+   分支因此是"模型内无条件"，其对真实 Sycamore 的意义取决于模型保真度；把它换成真实时空晶格
+   图的逐序 width 计算，需要在 Lean 里自建 treewidth 理论（Mathlib 无）——这正是 §2 剩余
+   `pw=Θ(tw)` 假设承担的部分。
 2. **引理 B 的 generic 结论针对无约束张量**；真实电路中间张量是受约束子族——worst-case
    （具体门）、C 线（跨割面匹配）、P1（gate-counting + 因果可达）均已接死。
 3. **P1 因果模型的几何保真度**：`Causal` 用 1D 链（`pathGraph`，b=1）与 2D 方芯片
@@ -214,26 +223,28 @@ rigidity 定理、并约化随机性的整体论证是新的。
   定理 + "什么电路必然有量子优越性"**为主线，随机电路作为 corollary。这是新意最高、最契合
   本框架风格的路径。P1（几何路由：deep ⇒ Ω(min) matching）已由 gate-counting + lightcone
   因果可达（1D & 2D）机器证明，Sycamore 不再是抽象两块而有真实芯片图的因果支撑。
-- **(b) 形式化 / 方法学方向**（ITP / CPP / *J. Automated Reasoning*）：以"首个 Lean 形式化
-  随机电路收缩复杂度框架、极小公理足迹（仅 `pw=Θ(tw)` 一条引用）、端到端
-  `sycamore53_lower_bound`"为卖点。**当前内容已充分够一篇**。
-- **(c) 最高价值**：形式化 `pw=Θ(tw)`（子树 Helly）后，C 线即对 stem 与一切收缩都成为
-  **无条件**（结构假设下）紧下界，公理足迹归零（除标准公理）。
+- **(b) 形式化 / 方法学方向（已定路线：CPP 2027 → JAR 扩展版）**：以"首个 Lean 形式化
+  随机电路收缩复杂度框架、**全库零自定义 axiom**（文献输入以显式假设出现并在具体模型上兑现）、
+  端到端 `sycamore53_lower_bound`"为卖点。**当前内容已充分够一篇**。CPP 2027 摘要 2026-09-03、
+  正文 2026-09-10（AoE）；会后按惯例扩展 ~30% 投 *J. Automated Reasoning*（CCF B）。
+- **(c) 最高价值（JAR 扩展版目标）**：形式化 `pw=Θ(tw)`（子树 Helly）后，stem 下界对一切
+  收缩路径成为无条件（结构假设下）紧下界，`hlow`/`LatticePathwidthBound` 假设从定理签名中
+  彻底消失。
 
 **会显著增强发表力的两件事**：
-1. **形式化 `pw=Θ(tw)`**（P2，子树 Helly + 树分解）：去掉最后一条引用 axiom。
+1. **形式化 `pw=Θ(tw)`**（P2，子树 Helly + 树分解）：移除最后一条文献输入假设（JAR 版核心增量）。
 2. 形式化 C.3 概率 corollary（`Pr=0`），给出"随机电路作为 corollary"的机器核验版本。
 
 ---
 
 ## 7. 一句话给评审
 
-> 我们有一个**机器核验、无 sorry、公理足迹极小**的 Lean 形式化，建立了 **Contraction
+> 我们有一个**机器核验、无 sorry、全库零自定义 axiom**的 Lean 形式化，建立了 **Contraction
 > Rigidity 结构定理**——"能跨割面纠缠的电路 ⇒ generic 无秩坍缩 ⇒ 紧收缩下界"——从而把随机
 > 电路紧下界从一个概率（随机矩阵）问题**重构为结构 + 纯组合问题**（随机电路 / Sycamore 成
 > 为 corollary）；并以单一定理 `sycamore53_lower_bound` 给出端到端陈述（割面=53、代价
-> ~10^18、最优 stem 结构、满 Schmidt 秩 2^53）。**stem(pathwidth) 宽度下界 Θ(min(n,√n·d)) 与
-> "deep ⇒ Ω(min) 跨割面 matching"（gate-counting + lightcone 因果可达，1D & 2D）均已完全
-> 自证**（`#print axioms` 仅标准公理）；唯一剩余的引用是 `pw = Θ(tw)`（把 stem 下界推广到一切
-> 收缩，已发表 grid 定理）。请评估：(a) 结构定理路线（路线 B）的发表价值与目标会议；
-> (b) 把唯一剩余引用 `pw=Θ(tw)` 也形式化的必要性与代价。
+> ~10^18、最优 stem 结构、满 Schmidt 秩 2^53），`#print axioms` 仅标准公理。**stem(pathwidth)
+> 宽度下界 Θ(min(n,√n·d)) 与"deep ⇒ Ω(min) 跨割面 matching"（gate-counting + lightcone 因果
+> 可达，1D & 2D）均已完全自证**；唯一剩余的文献输入是 `pw = Θ(tw)`（把 stem 下界推广到一切
+> 收缩，已发表 grid 定理），以显式假设出现在定理签名中、并在具体 Sycamore 模型上由计算兑现。
+> 投稿路线：CPP 2027（2026-09 截稿）→ JAR 扩展版（形式化 `pw=Θ(tw)` 为核心增量）。
