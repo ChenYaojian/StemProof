@@ -18,6 +18,7 @@ Layered targets:
 * `FieldStemProof.Spacetime` — faithful cut geometry: time/space sweeps, min(n,√n·d) scale
 * `FieldStemProof.Bramble` — interval-Helly pathwidth lower bound (stem width ≥ bramble order)
 * `FieldStemProof.GridConn` — grid cross connectivity ⇒ self-contained pathwidth lower bound
+* `FieldStemProof.GridModel` — faithful model: orders = real path decompositions of the grid
 * `FieldStemProof.Brickwork` — keystone: deep brickwork routes a min(n,√n·d) cross-cut matching
 * `FieldStemProof.Causal` — causal reachability: cross-cut bonds within the depth-d lightcone
 -/
@@ -34,5 +35,6 @@ import FieldStemProof.Sycamore
 import FieldStemProof.Spacetime
 import FieldStemProof.Bramble
 import FieldStemProof.GridConn
+import FieldStemProof.GridModel
 import FieldStemProof.Brickwork
 import FieldStemProof.Causal
