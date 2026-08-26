@@ -42,6 +42,21 @@ theorem bagsWidth_eq_maxBag (L : LinearBags V) (hlen : 0 < L.len) :
     bagsWidth L = L.maxBag hlen :=
   (Finset.sup'_eq_sup _ _).symm
 
+/-- **Cost of executing a bag sequence as a contraction order**: each step materializes its
+boundary tensor, of size `2^|bag|`; the total cost is the sum over steps. This is the object
+the TNCO yardstick bounds — width is the proxy, cost is the claim. -/
+def bagsCost (L : LinearBags V) : ℕ := ∑ i, 2 ^ (L.bag i).card
+
+/-- The widest bag alone bounds the cost from below: `2^width ≤ cost`. -/
+theorem pow_width_le_bagsCost (L : LinearBags V) (hlen : 0 < L.len) :
+    2 ^ bagsWidth L ≤ bagsCost L := by
+  obtain ⟨i, _, hi⟩ := Finset.exists_mem_eq_sup Finset.univ
+    (Finset.univ_nonempty_iff.mpr ⟨⟨0, hlen⟩⟩) fun j => (L.bag j).card
+  calc 2 ^ bagsWidth L = 2 ^ (L.bag i).card := by rw [bagsWidth, hi]
+    _ ≤ ∑ j, 2 ^ (L.bag j).card :=
+        Finset.single_le_sum (f := fun j => 2 ^ (L.bag j).card)
+          (fun j _ => Nat.zero_le _) (Finset.mem_univ i)
+
 /-- **Path decomposition of the `k × k` grid graph** — the three defining axioms: vertex bags
 form index intervals (`vint`), every grid edge lies in a bag (`edge`), every vertex is covered
 (`cov`). Exactly the hypotheses of `grid_pathwidth_lower_unconditional`. -/
@@ -211,5 +226,25 @@ theorem gridModel_cc_attained (k : ℕ) :
     ⟨_, ⟨⟨sweepBags k, sweepBags_isPathDecomp k⟩, rfl⟩⟩
   obtain ⟨o, ho⟩ := Nat.sInf_mem hne
   exact ⟨o, trivial, ho⟩
+
+/-- The cost of a model order: the total size of the boundary tensors its sweep
+materializes. -/
+def orderCost {k : ℕ} (o : (gridModel k).Order) : ℕ := bagsCost o.1
+
+/-- **Certified cost floor.** Every stem contraction order of the `k × k` grid pays at least
+`2^⌈k/2⌉` — the width floor translated into cost. (The complementary generic no-compression
+statement, closing the low-rank loophole, is `ContractionRigid.no_compression` in
+`Rigidity`.) -/
+theorem gridModel_cost_floor (k : ℕ) (hk : 0 < k) (o : (gridModel k).Order) :
+    2 ^ ((k + 1) / 2) ≤ orderCost o := by
+  have hw := gridModel_width_lower k hk o
+  have hlen : 0 < o.1.len := o.2.len_pos hk
+  have hwidth : (k + 1) / 2 ≤ bagsWidth o.1 := by
+    have heq : (gridModel k).width o = bagsWidth o.1 := rfl
+    omega
+  show (2:ℕ) ^ ((k + 1) / 2) ≤ bagsCost o.1
+  calc (2:ℕ) ^ ((k + 1) / 2) ≤ 2 ^ bagsWidth o.1 :=
+        Nat.pow_le_pow_right (by norm_num) hwidth
+    _ ≤ bagsCost o.1 := pow_width_le_bagsCost o.1 hlen
 
 end FieldStemProof.GridModel

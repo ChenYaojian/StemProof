@@ -124,4 +124,54 @@ theorem contractionRigid_of_matching [IsDomain K] {k : ℕ}
   obtain ⟨T, hT⟩ := bulkEntangling_of_matching p e eqp B hB
   exact ⟨T, contraction_rigidity p e hT⟩
 
+/-! ### From full rank to a compression floor — width is genuinely cost
+
+A width floor is a *cost* floor only if low-rank structure cannot undercut the materialized
+boundary tensors (decision-diagram-style methods exploit exactly such structure). Rigidity
+closes this loophole generically: full Schmidt rank across the cut means the flattening admits
+no factorization through fewer than `2^k` inner indices — no MPS-style bond of dimension
+`< 2^k`, no rank-revealing compression — for every gate configuration outside the vanishing
+set of one nonzero polynomial. -/
+
+/-- **No-compression core (linear algebra).** A matrix with nonzero determinant admits no
+factorization `M = A * B` through an inner index type smaller than its side: `M`'s
+multiplication map is injective and factors through `r → F`, so `card n ≤ card r`. -/
+theorem inner_dim_le_of_factorization {F : Type*} [Field F] {n r : Type*}
+    [Fintype n] [DecidableEq n] [Fintype r]
+    {M : Matrix n n F} (hM : M.det ≠ 0) {A : Matrix n r F} {B : Matrix r n F}
+    (hfac : M = A * B) : Fintype.card n ≤ Fintype.card r := by
+  have : Invertible M := M.invertibleOfIsUnitDet (isUnit_iff_ne_zero.mpr hM)
+  have hMinj : Function.Injective M.mulVec := fun x y hxy => by
+    have h := congrArg (Matrix.mulVec M⁻¹) hxy
+    rwa [Matrix.mulVec_mulVec, Matrix.mulVec_mulVec, Matrix.inv_mul_of_invertible,
+      Matrix.one_mulVec, Matrix.one_mulVec] at h
+  have hcomp : M.mulVec = A.mulVec ∘ B.mulVec := by
+    funext x
+    simp [hfac, Matrix.mulVec_mulVec]
+  have hBinj : Function.Injective B.mulVec := by
+    rw [hcomp] at hMinj
+    exact Function.Injective.of_comp hMinj
+  have hlinInj : Function.Injective B.mulVecLin := fun x y hxy =>
+    hBinj (by simpa [Matrix.mulVecLin_apply] using hxy)
+  have hlin := LinearMap.finrank_le_finrank_of_injective hlinInj
+  simpa [Module.finrank_pi] using hlin
+
+/-- **Contraction rigidity ⇒ generic bond-dimension floor.** For a rigid family, at every gate
+configuration outside the vanishing subvariety, the cut flattening admits no factorization with
+inner dimension below `2^{|p-side|}`: a compressed (bond-dimension-`r`) representation of the
+boundary tensor at this cut with `r < 2^k` is exact only on a measure-zero set of instances.
+This upgrades the combinatorial width floor to a cost floor robust against low-rank
+compression, generically. -/
+theorem ContractionRigid.no_compression {F : Type*} [Field F]
+    (e : ({i // p i} → Fin 2) ≃ ({i // ¬ p i} → Fin 2))
+    {T : QTensor I (MvPolynomial ι F)} (h : ContractionRigid p e T)
+    {v : ι → F} (hv : eval v (squareFlatten p e T).det ≠ 0)
+    {r : ℕ} {A : Matrix ({i // p i} → Fin 2) (Fin r) F}
+    {B : Matrix (Fin r) ({i // p i} → Fin 2) F}
+    (hfac : squareFlatten p e (fun x => eval v (T x)) = A * B) :
+    2 ^ Fintype.card {i // p i} ≤ r := by
+  have hdet := h.2 v hv
+  have hle := inner_dim_le_of_factorization hdet hfac
+  rwa [Fintype.card_fun, Fintype.card_fin, Fintype.card_fin] at hle
+
 end FieldStemProof

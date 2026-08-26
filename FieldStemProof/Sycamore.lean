@@ -62,6 +62,37 @@ order space; the extension to tree orders is the `pw = Θ(tw)` literature input)
 theorem sycamore53_latticeBound : LatticePathwidthBound sycamore53 1 :=
   gridModel_latticeBound 53
 
+/-- **Certified cost floor for the benchmark instance**: every stem contraction order of the
+spacetime grid pays total cost at least `2^27` — the absolute yardstick for TNCO search on
+this instance. -/
+theorem sycamore53_cost_floor (o : sycamore53.Order) : 2 ^ 27 ≤ GridModel.orderCost o := by
+  have h := gridModel_cost_floor 53 fiftyThree_pos o
+  norm_num at h
+  exact h
+
+/-- **Generic bond-dimension floor at the benchmark cut.** For the rigid family witnessing the
+53-qubit cut, at every gate configuration outside the vanishing subvariety, the cut flattening
+admits no factorization with inner dimension below `2^53`: low-rank compression cannot undercut
+the width floor except on a measure-zero set of instances. -/
+theorem sycamore53_bond_floor :
+    ∃ (T : QTensor (Fin 53 ⊕ Fin 53) (MvPolynomial ℕ ℂ)),
+      ContractionRigid leftBlock (matchingEquiv leftBlock chipMatching) T ∧
+      ∀ (v : ℕ → ℂ),
+        MvPolynomial.eval v
+          (squareFlatten leftBlock (matchingEquiv leftBlock chipMatching) T).det ≠ 0 →
+        ∀ (r : ℕ) (A : Matrix ({i // leftBlock i} → Fin 2) (Fin r) ℂ)
+          (B : Matrix (Fin r) ({i // leftBlock i} → Fin 2) ℂ),
+          squareFlatten leftBlock (matchingEquiv leftBlock chipMatching)
+            (fun x => MvPolynomial.eval v (T x)) = A * B →
+          2 ^ 53 ≤ r := by
+  obtain ⟨T, hT⟩ := chip_contractionRigid (K := ℂ) (ι := ℕ) 53
+  refine ⟨T, hT, fun v hv r A B hfac => ?_⟩
+  have hcard : Fintype.card {i : Fin 53 ⊕ Fin 53 // leftBlock i} = 53 := by
+    rw [Fintype.card_congr chipLeft, Fintype.card_fin]
+  rw [← hcard]
+  exact ContractionRigid.no_compression leftBlock
+    (matchingEquiv leftBlock chipMatching) hT hv hfac
+
 /-- **Sycamore-53 end-to-end lower bound.** The four assembled claims as one theorem: cut size,
 cost `~10^18`, optimal-stem structure on the faithful spacetime model (optimum attained by a
 stem; stem width pinned to `Θ(53)` on the real graph), and contraction rigidity (full Schmidt
@@ -73,16 +104,18 @@ theorem sycamore53_lower_bound :
     ((10:ℕ) ^ 18 ≤ CorollaryD.stemCost 53 20 150 ∧
       CorollaryD.stemCost 53 20 150 < (10:ℕ) ^ 19) ∧
     -- (stem) on the real spacetime grid: the optimum is attained by a stem order, no order
-    -- beats width 27 (bramble, self-proved), and the sweep achieves width ≤ 54
+    -- beats width 27 (bramble, self-proved), the sweep achieves width ≤ 54, and every
+    -- order pays total cost ≥ 2^27 (the certified TNCO floor)
     ((∃ o, sycamore53.IsStem o ∧ sycamore53.width o = sycamore53.cc) ∧
       (∀ o, 53 ≤ 2 * sycamore53.width o) ∧
-      (∃ o, sycamore53.width o ≤ 54)) ∧
+      (∃ o, sycamore53.width o ≤ 54) ∧
+      (∀ o : sycamore53.Order, 2 ^ 27 ≤ GridModel.orderCost o)) ∧
     -- (rigidity) a balanced 53-qubit cut is contraction rigid (full Schmidt rank 2^53, generic)
     (∃ (e : ({i // leftBlock i} → Fin 2) ≃ ({i // ¬ leftBlock i} → Fin 2))
         (T : QTensor (Fin 53 ⊕ Fin 53) (MvPolynomial ℕ ℂ)),
         ContractionRigid leftBlock e T) := by
   refine ⟨CorollaryD.sweepCut_sycamore53, CorollaryD.stemCost_sycamore53,
-    ⟨?_, sycamore53_stem_lower, sycamore53_stem_upper⟩, ?_⟩
+    ⟨?_, sycamore53_stem_lower, sycamore53_stem_upper, sycamore53_cost_floor⟩, ?_⟩
   · exact gridModel_cc_attained 53
   · exact ⟨_, chip_contractionRigid (K := ℂ) (ι := ℕ) 53⟩
 
