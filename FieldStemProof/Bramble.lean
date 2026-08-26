@@ -55,11 +55,11 @@ sits in the path `L` so that "block `s` meets bag `i`" holds exactly on an index
 `[lo s, hi s]` (`mem_iff`), and these intervals pairwise overlap (`overlap`, the shadow of
 pairwise-touching blocks in a path decomposition). Then some single bag meets *every* block. -/
 theorem some_bag_hits_all {V : Type*} [DecidableEq V] (L : LinearBags V)
-    {r : ℕ} (hr : 0 < r) (β : Fin r → Finset V) (lo hi : Fin r → Fin L.len)
+    {ι : Type*} [Fintype ι] [Nonempty ι] (β : ι → Finset V) (lo hi : ι → Fin L.len)
     (mem_iff : ∀ s i, (L.bag i ∩ β s).Nonempty ↔ (lo s ≤ i ∧ i ≤ hi s))
     (overlap : ∀ s t, lo s ≤ hi t) :
-    ∃ i : Fin L.len, ∀ s : Fin r, (L.bag i ∩ β s).Nonempty := by
-  have hrs : (Finset.univ : Finset (Fin r)).Nonempty := Finset.univ_nonempty_iff.mpr ⟨⟨0, hr⟩⟩
+    ∃ i : Fin L.len, ∀ s : ι, (L.bag i ∩ β s).Nonempty := by
+  have hrs : (Finset.univ : Finset ι).Nonempty := Finset.univ_nonempty
   obtain ⟨x, hx⟩ := interval_helly Finset.univ hrs lo hi
     (fun i _ j _ => overlap i j)
   refine ⟨x, fun s => ?_⟩
@@ -67,27 +67,28 @@ theorem some_bag_hits_all {V : Type*} [DecidableEq V] (L : LinearBags V)
   exact hx s (Finset.mem_univ s)
 
 /-- A bag that meets every block is a *hitting set* (transversal) of the bramble. -/
-def IsHittingSet {V : Type*} [DecidableEq V] {r : ℕ} (β : Fin r → Finset V) (H : Finset V) : Prop :=
+def IsHittingSet {V : Type*} [DecidableEq V] {ι : Type*} (β : ι → Finset V) (H : Finset V) : Prop :=
   ∀ s, (H ∩ β s).Nonempty
 
 /-- The order of the bramble: the least size of a hitting set. -/
-noncomputable def order {V : Type*} [Fintype V] [DecidableEq V] {r : ℕ} (β : Fin r → Finset V) : ℕ :=
+noncomputable def order {V : Type*} [Fintype V] [DecidableEq V] {ι : Type*} (β : ι → Finset V) : ℕ :=
   sInf {k | ∃ H : Finset V, IsHittingSet β H ∧ H.card = k}
 
 /-- If a bag is a hitting set, its size is at least the bramble order. -/
-theorem order_le_card_of_hitting {V : Type*} [Fintype V] [DecidableEq V] {r : ℕ}
-    (β : Fin r → Finset V) {H : Finset V} (hH : IsHittingSet β H) : order β ≤ H.card :=
+theorem order_le_card_of_hitting {V : Type*} [Fintype V] [DecidableEq V] {ι : Type*}
+    (β : ι → Finset V) {H : Finset V} (hH : IsHittingSet β H) : order β ≤ H.card :=
   Nat.sInf_le ⟨H, hH, rfl⟩
 
 /-- **Pathwidth bramble lower bound.** Under the interval/overlap shadow of a bramble in a path
 decomposition, the largest bag is at least the bramble order: `order β ≤ maxBag`. Hence the
 pathwidth (`maxBag − 1`) is at least `order β − 1`. -/
 theorem order_le_maxBag {V : Type*} [Fintype V] [DecidableEq V] (L : LinearBags V)
-    (hlen : 0 < L.len) {r : ℕ} (hr : 0 < r) (β : Fin r → Finset V) (lo hi : Fin r → Fin L.len)
+    (hlen : 0 < L.len) {ι : Type*} [Fintype ι] [Nonempty ι]
+    (β : ι → Finset V) (lo hi : ι → Fin L.len)
     (mem_iff : ∀ s i, (L.bag i ∩ β s).Nonempty ↔ (lo s ≤ i ∧ i ≤ hi s))
     (overlap : ∀ s t, lo s ≤ hi t) :
     order β ≤ L.maxBag hlen := by
-  obtain ⟨i, hi'⟩ := some_bag_hits_all L hr β lo hi mem_iff overlap
+  obtain ⟨i, hi'⟩ := some_bag_hits_all L β lo hi mem_iff overlap
   calc order β ≤ (L.bag i).card := order_le_card_of_hitting β hi'
     _ ≤ L.maxBag hlen := Finset.le_sup' (fun j => (L.bag j).card) (Finset.mem_univ i)
 
@@ -97,7 +98,7 @@ betweenness-closed (`between`, from `bag_meets_betweenness`) and any two blocks 
 index (`shared`, from blocks intersecting). The interval endpoints are recovered internally as the
 min/max touching index. -/
 theorem order_le_maxBag' {V : Type*} [Fintype V] [DecidableEq V] (L : LinearBags V)
-    (hlen : 0 < L.len) {r : ℕ} (hr : 0 < r) (β : Fin r → Finset V)
+    (hlen : 0 < L.len) {ι : Type*} [Fintype ι] [Nonempty ι] (β : ι → Finset V)
     (hne : ∀ s, ∃ i, (L.bag i ∩ β s).Nonempty)
     (between : ∀ s i j k, i ≤ j → j ≤ k →
       (L.bag i ∩ β s).Nonempty → (L.bag k ∩ β s).Nonempty → (L.bag j ∩ β s).Nonempty)
@@ -105,13 +106,13 @@ theorem order_le_maxBag' {V : Type*} [Fintype V] [DecidableEq V] (L : LinearBags
     order β ≤ L.maxBag hlen := by
   classical
   -- the set of bag indices touched by block s
-  set touchSet : Fin r → Finset (Fin L.len) :=
+  set touchSet : ι → Finset (Fin L.len) :=
     fun s => Finset.univ.filter (fun i => (L.bag i ∩ β s).Nonempty) with htouch
   have hmem : ∀ s i, i ∈ touchSet s ↔ (L.bag i ∩ β s).Nonempty := by
     intro s i; simp [htouch, Finset.mem_filter]
   have hnef : ∀ s, (touchSet s).Nonempty := by
     intro s; obtain ⟨i, hi⟩ := hne s; exact ⟨i, (hmem s i).mpr hi⟩
-  refine order_le_maxBag L hlen hr β (fun s => (touchSet s).min' (hnef s))
+  refine order_le_maxBag L hlen β (fun s => (touchSet s).min' (hnef s))
     (fun s => (touchSet s).max' (hnef s)) ?_ ?_
   · -- mem_iff
     intro s i
@@ -249,12 +250,12 @@ theorem pathwidth_ge_order_of_connected (L : LinearBags V) (hlen : 0 < L.len)
     (hvint : ∀ (v : V) (a c j : Fin L.len), a ≤ j → j ≤ c → v ∈ L.bag a → v ∈ L.bag c → v ∈ L.bag j)
     (hedge : ∀ ⦃x y : V⦄, G.Adj x y → ∃ m, x ∈ L.bag m ∧ y ∈ L.bag m)
     (hcov : ∀ v : V, ∃ i, v ∈ L.bag i)
-    {r : ℕ} (hr : 0 < r) (β : Fin r → Finset V)
+    {ι : Type*} [Fintype ι] [Nonempty ι] (β : ι → Finset V)
     (hconn : ∀ s u w, u ∈ β s → w ∈ β s → ∃ p : G.Walk u w, ∀ x ∈ p.support, x ∈ β s)
     (hinter : ∀ s t, (β s ∩ β t).Nonempty) :
     order β ≤ L.maxBag hlen := by
   classical
-  refine order_le_maxBag' L hlen hr β ?_ ?_ ?_
+  refine order_le_maxBag' L hlen β ?_ ?_ ?_
   · -- each block is touched by some bag (a vertex of the block is covered)
     intro s
     obtain ⟨v, hv⟩ := (hinter s s)
@@ -271,6 +272,48 @@ theorem pathwidth_ge_order_of_connected (L : LinearBags V) (hlen : 0 < L.len)
     obtain ⟨i, hi⟩ := hcov v
     exact ⟨i, ⟨v, Finset.mem_inter.mpr ⟨hi, hv.1⟩⟩, ⟨v, Finset.mem_inter.mpr ⟨hi, hv.2⟩⟩⟩
 
+/-- Touching relation for a bramble in `G`: blocks intersect or are joined by an edge. -/
+def Touches {V : Type*} (G : SimpleGraph V) [DecidableEq V] (b c : Finset V) : Prop :=
+  (b ∩ c).Nonempty ∨ ∃ u ∈ b, ∃ v ∈ c, G.Adj u v
+
+/-- **Touching bramble ⇒ pathwidth lower bound.** Like `pathwidth_ge_order_of_connected`, but
+blocks need only pairwise *touch* (intersect or be joined by a `G`-edge) — the genuine bramble
+condition. When two blocks touch only through an edge, the shared bag index comes from the
+edge-cover axiom instead of a shared vertex. Needed for augmented (Seymour–Thomas style)
+brambles whose boundary blocks are disjoint from the crosses. -/
+theorem pathwidth_ge_order_of_touching (L : LinearBags V) (hlen : 0 < L.len)
+    (G : SimpleGraph V)
+    (hvint : ∀ (v : V) (a c j : Fin L.len), a ≤ j → j ≤ c → v ∈ L.bag a → v ∈ L.bag c → v ∈ L.bag j)
+    (hedge : ∀ ⦃x y : V⦄, G.Adj x y → ∃ m, x ∈ L.bag m ∧ y ∈ L.bag m)
+    (hcov : ∀ v : V, ∃ i, v ∈ L.bag i)
+    {ι : Type*} [Fintype ι] [Nonempty ι] (β : ι → Finset V)
+    (hconn : ∀ s u w, u ∈ β s → w ∈ β s → ∃ p : G.Walk u w, ∀ x ∈ p.support, x ∈ β s)
+    (htouch : ∀ s t, Touches G (β s) (β t)) :
+    order β ≤ L.maxBag hlen := by
+  classical
+  refine order_le_maxBag' L hlen β ?_ ?_ ?_
+  · -- each block is touched by some bag
+    intro s
+    rcases htouch s s with h | ⟨u, hu, v, hv, huv⟩
+    · obtain ⟨x, hx⟩ := h
+      rw [Finset.mem_inter] at hx
+      obtain ⟨i, hi⟩ := hcov x
+      exact ⟨i, ⟨x, Finset.mem_inter.mpr ⟨hi, hx.1⟩⟩⟩
+    · obtain ⟨i, hi⟩ := hcov u
+      exact ⟨i, ⟨u, Finset.mem_inter.mpr ⟨hi, hu⟩⟩⟩
+  · -- betweenness, from the connectivity bridge
+    intro s i j k hij hjk hi hk
+    exact bag_meets_betweenness L G (β s) hvint hedge (hconn s) hij hjk hi hk
+  · -- shared touching index: a shared vertex, or the bag covering the touching edge
+    intro s t
+    rcases htouch s t with h | ⟨u, hu, v, hv, huv⟩
+    · obtain ⟨x, hx⟩ := h
+      rw [Finset.mem_inter] at hx
+      obtain ⟨i, hi⟩ := hcov x
+      exact ⟨i, ⟨x, Finset.mem_inter.mpr ⟨hi, hx.1⟩⟩, ⟨x, Finset.mem_inter.mpr ⟨hi, hx.2⟩⟩⟩
+    · obtain ⟨m, hum, hvm⟩ := hedge huv
+      exact ⟨m, ⟨u, Finset.mem_inter.mpr ⟨hum, hu⟩⟩, ⟨v, Finset.mem_inter.mpr ⟨hvm, hv⟩⟩⟩
+
 /-- **Grid stem-width (pathwidth) lower bound — `Θ(k)`.** In any path decomposition of a graph `G`
 on the `k × k` grid vertices in which every cross `row i ∪ col i` is `G`-connected (true for the
 grid graph itself), the largest bag has `k ≤ 2 · maxBag`, i.e. stem width `≥ k/2 − 1`. This is the
@@ -284,10 +327,11 @@ theorem grid_pathwidth_lower (k : ℕ) (hk : 0 < k)
     (hcov : ∀ v : Fin k × Fin k, ∃ i, v ∈ L.bag i)
     (hconn : ∀ s : Fin k, ∀ u w, u ∈ cross k s → w ∈ cross k s →
       ∃ p : G.Walk u w, ∀ x ∈ p.support, x ∈ cross k s) :
-    k ≤ 2 * L.maxBag hlen :=
-  le_trans (cross_order_ge hk)
+    k ≤ 2 * L.maxBag hlen := by
+  haveI : Nonempty (Fin k) := ⟨⟨0, hk⟩⟩
+  exact le_trans (cross_order_ge hk)
     (Nat.mul_le_mul_left 2
-      (pathwidth_ge_order_of_connected L hlen G hvint hedge hcov hk (cross k) hconn
+      (pathwidth_ge_order_of_connected L hlen G hvint hedge hcov (cross k) hconn
         (cross_inter_nonempty k)))
 
 end FieldStemProof.Bramble
