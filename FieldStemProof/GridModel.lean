@@ -9,13 +9,14 @@ from the genuine spacetime lattice graph:
   contraction orders of the spacetime tensor network, an infinite genuine order space;
 * `width` := the actual largest bag size of the decomposition (`bagsWidth`), a *derived*
   quantity — nothing is postulated;
-* the **lower bound** `k ≤ 2 · width` for *every* order is the self-proved bramble theorem
-  (`GridConn.grid_pathwidth_lower_unconditional`);
+* the **lower bound** for *every* order is the augmented-bramble theorem
+  (`GridExact.grid_pathwidth_exact`): width `≥ N + 1` on the `N × N` grid (`N ≥ 2`);
 * the **upper bound** is an explicit sliding-window sweep decomposition (`sweepBags`, the
-  state-vector sweep boundary) of width `≤ k + 1` — the textbook grid pathwidth.
+  state-vector sweep boundary) of width `≤ N + 1` — the textbook grid pathwidth.
 
-Hence the model's `pw = cc` is genuinely pinned to `Θ(k)` — `k/2 ≤ pw ≤ k + 1` — by
-machine-checked bounds on a real graph, and the stem optimum is *attained* (`Nat.sInf_mem`).
+Hence the model's `pw = cc` is **pinned exactly**: `cc = N + 1`, both directions
+machine-checked on a real graph, the optimum attained (`Nat.sInf_mem`), and the sweep
+certifiably optimal among stem orders.
 
 Honest scope: `IsStem ≡ True` here is *definitional*, not degenerate — the order space of this
 model consists exactly of the linear (stem) orders; extending the lower bound to arbitrary tree
@@ -24,7 +25,7 @@ carried as an explicit hypothesis elsewhere. The `k × k` grid is the spacetime 
 `k`-wire chain in the deep regime (`d ≥ k` layers); the (2+1)D chip lattice is the remaining
 faithfulness step (cf. `Causal` for its matching side).
 -/
-import FieldStemProof.GridConn
+import FieldStemProof.GridExact
 import FieldStemProof.TheoremA
 
 namespace FieldStemProof.GridModel
@@ -171,14 +172,17 @@ def gridModel (k : ℕ) : CircuitGraph where
   tw := k
   IsLattice := True
 
-/-- **Real lower bound, every order** (the self-proved bramble theorem, now speaking about the
-model): every stem contraction order of the `k × k` spacetime grid has width `≥ k/2`. -/
-theorem gridModel_width_lower (k : ℕ) (hk : 0 < k) (o : (gridModel k).Order) :
-    k ≤ 2 * (gridModel k).width o := by
+/-- **Exact lower bound, every order** (the augmented-bramble theorem speaking about the
+model): for `N ≥ 2`, every stem contraction order of the `N × N` spacetime grid has width at
+least `N + 1` — meeting the sweep exactly. -/
+theorem gridModel_width_lower (N : ℕ) (hN : 2 ≤ N) (o : (gridModel N).Order) :
+    N + 1 ≤ (gridModel N).width o := by
+  obtain ⟨k, rfl⟩ : ∃ k, N = k + 1 := ⟨N - 1, by omega⟩
+  have hk : 0 < k := by omega
   obtain ⟨L, hL⟩ := o
-  have hlen : 0 < L.len := hL.len_pos hk
-  have h := grid_pathwidth_lower_unconditional k hk L hlen hL.vint hL.edge hL.cov
-  rwa [show (gridModel k).width ⟨L, hL⟩ = bagsWidth L from rfl,
+  have hlen : 0 < L.len := hL.len_pos (by omega)
+  have h := GridExact.grid_pathwidth_exact k hk L hlen hL.vint hL.edge hL.cov
+  rwa [show (gridModel (k+1)).width ⟨L, hL⟩ = bagsWidth L from rfl,
     bagsWidth_eq_maxBag L hlen]
 
 /-- **Real upper bound**: the sweep order has width `≤ k + 1` (the textbook grid pathwidth). -/
@@ -186,18 +190,17 @@ theorem gridModel_width_upper (k : ℕ) :
     ∃ o : (gridModel k).Order, (gridModel k).width o ≤ k + 1 :=
   ⟨⟨sweepBags k, sweepBags_isPathDecomp k⟩, sweepBags_width_le k⟩
 
-/-- The model's contraction optimum is genuinely pinned: `k ≤ 2 · cc` and `cc ≤ k + 1` — `Θ(k)`
-with tight upper constant, both bounds machine-checked on the real graph. -/
-theorem gridModel_cc_bounds (k : ℕ) (hk : 0 < k) :
-    k ≤ 2 * (gridModel k).cc ∧ (gridModel k).cc ≤ k + 1 := by
-  have hne : (Set.range (gridModel k).width).Nonempty :=
-    ⟨_, ⟨⟨sweepBags k, sweepBags_isPathDecomp k⟩, rfl⟩⟩
-  constructor
+/-- **The optimum is pinned exactly**: for `N ≥ 2`, `cc = N + 1` — the certified floor meets
+the explicit sweep, so the sweep is certifiably optimal among stem orders. -/
+theorem gridModel_cc_eq (N : ℕ) (hN : 2 ≤ N) : (gridModel N).cc = N + 1 := by
+  have hne : (Set.range (gridModel N).width).Nonempty :=
+    ⟨_, ⟨⟨sweepBags N, sweepBags_isPathDecomp N⟩, rfl⟩⟩
+  refine le_antisymm ?_ ?_
+  · obtain ⟨o, ho⟩ := gridModel_width_upper N
+    exact le_trans (Nat.sInf_le ⟨o, rfl⟩) ho
   · obtain ⟨o, ho⟩ := Nat.sInf_mem hne
     rw [CircuitGraph.cc, ← ho]
-    exact gridModel_width_lower k hk o
-  · obtain ⟨o, ho⟩ := gridModel_width_upper k
-    exact le_trans (Nat.sInf_le ⟨o, rfl⟩) ho
+    exact gridModel_width_lower N hN o
 
 /-- Every order being a stem, the stem optimum equals the global optimum: `pw ≤ cc` (with
 `cc ≤ pw` from `cc_le_pw`, equality). Hence `LatticePathwidthBound (gridModel k) 1` holds *by
@@ -231,19 +234,19 @@ theorem gridModel_cc_attained (k : ℕ) :
 materializes. -/
 def orderCost {k : ℕ} (o : (gridModel k).Order) : ℕ := bagsCost o.1
 
-/-- **Certified cost floor.** Every stem contraction order of the `k × k` grid pays at least
-`2^⌈k/2⌉` — the width floor translated into cost. (The complementary generic no-compression
-statement, closing the low-rank loophole, is `ContractionRigid.no_compression` in
-`Rigidity`.) -/
-theorem gridModel_cost_floor (k : ℕ) (hk : 0 < k) (o : (gridModel k).Order) :
-    2 ^ ((k + 1) / 2) ≤ orderCost o := by
-  have hw := gridModel_width_lower k hk o
-  have hlen : 0 < o.1.len := o.2.len_pos hk
-  have hwidth : (k + 1) / 2 ≤ bagsWidth o.1 := by
-    have heq : (gridModel k).width o = bagsWidth o.1 := rfl
+/-- **Certified cost floor, exact scale.** For `N ≥ 2`, every stem contraction order of the
+`N × N` grid pays total cost at least `2^{N+1}` — the exact width floor translated into cost.
+(The complementary generic no-compression statement, closing the low-rank loophole, is
+`ContractionRigid.no_compression` in `Rigidity`.) -/
+theorem gridModel_cost_floor (N : ℕ) (hN : 2 ≤ N) (o : (gridModel N).Order) :
+    2 ^ (N + 1) ≤ orderCost o := by
+  have hw := gridModel_width_lower N hN o
+  have hlen : 0 < o.1.len := o.2.len_pos (by omega)
+  have hwidth : N + 1 ≤ bagsWidth o.1 := by
+    have heq : (gridModel N).width o = bagsWidth o.1 := rfl
     omega
-  show (2:ℕ) ^ ((k + 1) / 2) ≤ bagsCost o.1
-  calc (2:ℕ) ^ ((k + 1) / 2) ≤ 2 ^ bagsWidth o.1 :=
+  show (2:ℕ) ^ (N + 1) ≤ bagsCost o.1
+  calc (2:ℕ) ^ (N + 1) ≤ 2 ^ bagsWidth o.1 :=
         Nat.pow_le_pow_right (by norm_num) hwidth
     _ ≤ bagsCost o.1 := pow_width_le_bagsCost o.1 hlen
 
