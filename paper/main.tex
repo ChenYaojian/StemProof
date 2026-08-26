@@ -1,0 +1,303 @@
+%% CPP 2027 submission skeleton — double-blind, sigplan format, 12 pp excl. refs/appendix.
+%% Deadlines (AoE): abstract 2026-09-03, paper 2026-09-10.  Submit: https://cpp2027.hotcrp.com/
+%% Build: latexmk -pdf main.tex
+\documentclass[sigplan,screen,review,anonymous]{acmart}
+
+%% TODO before camera-ready: drop `review,anonymous`, fill authors, rights form.
+\setcopyright{none}
+\acmConference[CPP '27]{Certified Programs and Proofs}{January 11--12, 2027}{Mexico City, Mexico}
+\acmYear{2027}
+
+\usepackage{listings}
+\usepackage{amsmath}
+
+%% ---- Lean listings: minimal literate setup for the unicode we actually use ----
+\lstdefinelanguage{lean}{
+  keywords={theorem,def,structure,where,fun,by,exact,intro,obtain,refine,show,
+            rcases,rw,omega,ring,calc,have,open,import,namespace,end,variable,abbrev},
+  sensitive=true,
+  comment=[l]{--},
+  morecomment=[s]{/-}{-/},
+  literate={≤}{{$\leq$}}1 {≥}{{$\geq$}}1 {∀}{{$\forall$}}1 {∃}{{$\exists$}}1
+           {∈}{{$\in$}}1 {×}{{$\times$}}1 {⇒}{{$\Rightarrow$}}1 {→}{{$\to$}}1
+           {ℕ}{{$\mathbb{N}$}}1 {ℂ}{{$\mathbb{C}$}}1 {≃}{{$\simeq$}}1
+           {∧}{{$\wedge$}}1 {¬}{{$\neg$}}1 {∩}{{$\cap$}}1 {∪}{{$\cup$}}1
+           {⟨}{{$\langle$}}1 {⟩}{{$\rangle$}}1 {≠}{{$\neq$}}1 {√}{{$\sqrt{}$}}1
+           {Θ}{{$\Theta$}}1 {Ω}{{$\Omega$}}1 {μ}{{$\mu$}}1 {θ}{{$\theta$}}1 {ι}{{$\iota$}}1 {σ}{{$\sigma$}}1
+           {□}{{$\square$}}1 {·}{{$\cdot$}}1 {↑}{{$\uparrow$}}1 {∉}{{$\notin$}}1,
+}
+\lstset{language=lean,basicstyle=\small\ttfamily,columns=fullflexible,
+        keywordstyle=\bfseries,commentstyle=\itshape\color{gray},
+        breaklines=true,frame=single,framerule=0.2pt,xleftmargin=1em}
+
+\newcommand{\cc}{\mathrm{cc}}
+\newcommand{\pw}{\mathrm{pw}}
+\newcommand{\tw}{\mathrm{tw}}
+\newcommand{\sys}{\textsc{FieldStemProof}}  % TODO: anonymize artifact name if identifying
+
+\begin{document}
+
+\title{A Machine-Checked Framework for Stem-Structured Contraction Lower Bounds
+       of Random Quantum Circuits}
+%% Alt titles (pick one):
+%%   Contraction Rigidity, Formally: Generic Rank Lower Bounds for Quantum Tensor Networks in Lean
+%%   From Brambles to Sycamore: A Lean Formalization of Tensor-Network Contraction Lower Bounds
+
+\author{Anonymous Author(s)}
+\affiliation{\institution{Anonymous Institution}\city{}\country{}}
+
+\begin{abstract}
+Estimates of the classical cost of simulating quantum ``supremacy'' circuits rest on
+tensor-network contraction: the observed optimal strategies are \emph{stem-shaped}
+(state-vector-style sweeps), with cost $\Theta(2^{\min(n,\sqrt{n}\,d)})$ for $n$ qubits and
+depth $d$. We present the first machine-checked development of this lower-bound story, in
+Lean~4 over Mathlib ($\sim$2{,}100 lines, 16 modules, no \texttt{sorry}, and --- after a
+soundness repair we describe --- \textbf{zero custom axioms}: \texttt{\#print axioms} of every
+theorem reports only \texttt{propext}, \texttt{Classical.choice}, \texttt{Quot.sound}).
+The development contributes:
+(1)~\emph{Contraction Rigidity}, a structural theorem replacing the usual average-case
+random-matrix analysis --- any circuit \emph{capable} of entangling across a cut has full
+Schmidt rank for all gate parameters outside a proper subvariety --- with the hypothesis
+reduced, via Kronecker routing, to a purely combinatorial cross-cut matching;
+(2)~a self-contained pathwidth lower bound via an interval-Helly bramble argument,
+instantiated on the genuine grid graph;
+(3)~a \emph{faithful} circuit model whose contraction orders are real path decompositions of
+the spacetime lattice --- widths are derived, not postulated --- pinning the optimum to
+$27 \le \cc \le 54$ at the Sycamore-53 scale;
+(4)~an end-to-end theorem \lstinline|sycamore53_lower_bound| assembling cut size, the
+$10^{18}$ cost estimate, stem optimality, and generic rank $2^{53}$; and
+(5)~a cautionary methodological result: the standard ``cite published theorems as axioms''
+practice, stated over an abstract structure, made the ambient theory \emph{inconsistent}
+(we exhibit machine-checked derivations of \texttt{False}), and we show how hypothesis-form
+statements repair it while \emph{strengthening} the headline claims.
+%% TODO: final abstract pass; keep <= 200 words if possible.
+\end{abstract}
+
+\begin{CCSXML}
+<ccs2012>
+<concept><concept_id>10003752.10003790.10011740</concept_id>
+<concept_desc>Theory of computation~Type theory</concept_desc>
+<concept_significance>500</concept_significance></concept>
+<concept><concept_id>10003752.10003809.10010052</concept_id>
+<concept_desc>Theory of computation~Quantum complexity theory</concept_desc>
+<concept_significance>500</concept_significance></concept>
+</ccs2012>
+\end{CCSXML}
+\ccsdesc[500]{Theory of computation~Type theory}
+\ccsdesc[500]{Theory of computation~Quantum complexity theory}
+\keywords{Lean, Mathlib, tensor networks, quantum circuits, treewidth, pathwidth,
+brambles, Schwartz--Zippel, quantum supremacy}
+
+\maketitle
+
+%% ===================================================================
+\section{Introduction}\label{sec:intro}
+%% Narrative arc (one paragraph each):
+%% 1. Supremacy cost estimates hinge on TN contraction; Markov--Shi: cc = tw(L(G)).
+%% 2. Practice: optimal paths are "stems" (Huang et al.); cost ~ 4·2^53·steps ≈ 10^18 for
+%%    Sycamore-53. But the *lower bound* story (why no contraction does better, and why
+%%    rank does not collapse) is scattered across heuristics, probabilistic arguments,
+%%    and cited graph theory. No part of it was machine-checked.
+%% 3. This paper: a Lean 4 formalization of the full chain -- with an honest accounting of
+%%    what is proved, what is hypothesis, and what a first "cite as axiom" attempt got
+%%    dangerously wrong.
+
+\paragraph{Contributions.}
+\begin{itemize}
+  \item \textbf{Contraction Rigidity (\S\ref{sec:rigidity}).} A structural reframing of the
+    average-case tightness question: \lstinline|BulkEntangling| $\Rightarrow$
+    \lstinline|ContractionRigid| --- one full-rank gate configuration upgrades to generic
+    full rank (Schwartz--Zippel, no probability). The hypothesis is discharged by a purely
+    combinatorial cross-cut matching via Kronecker routing; random circuits and Sycamore
+    become corollaries.
+  \item \textbf{Self-contained pathwidth lower bound (\S\ref{sec:bramble}).} Stem orders are
+    path decompositions, so the width lower bound needs only \emph{interval} Helly --- not
+    the subtree Helly that treewidth requires and Mathlib lacks. We prove the bramble bound
+    abstractly and instantiate it on the genuine nearest-neighbour grid
+    ($\mathrm{pathGraph}\,k \mathbin{\square} \mathrm{pathGraph}\,k$).
+  \item \textbf{A faithful model (\S\ref{sec:model}).} Contraction orders are \emph{real}
+    path decompositions of the spacetime lattice; width is the actual largest bag. Nothing
+    is postulated: the lower bound is the bramble theorem, the upper bound an explicit
+    sliding-window sweep of width $k+1$ (the textbook grid pathwidth), pinning
+    $27 \le \cc \le 54$ at scale $53$.
+  \item \textbf{End-to-end Sycamore theorem (\S\ref{sec:endtoend}).} One theorem conjoining
+    cut $=53$, cost in $[10^{18},10^{19})$, stem optimality on the faithful model, and
+    generic Schmidt rank $2^{53}$ --- standard axioms only.
+  \item \textbf{Geometric routing (\S\ref{sec:routing}).} The cross-cut matching at scale
+    $\min(n,\sqrt{n}\,d)$ is realized by gate counting (the $b\cdot d$ cap is a theorem,
+    not an assumption) and lightcone reachability on 1D chains and 2D chips.
+  \item \textbf{Axioms considered harmful (\S\ref{sec:axioms}).} Our first iteration cited
+    three published graph theorems as global axioms over an abstract structure; all three
+    are falsifiable by adversarial instances, and \texttt{False} was derivable. We document
+    the repair --- named \lstinline|Prop|s supplied per model, discharged by computation on
+    the concrete model --- and argue it should be the default idiom.
+\end{itemize}
+
+%% ===================================================================
+\section{Background}\label{sec:background}
+%% Keep to ~1 page. Subsections:
+\subsection{Tensor networks and contraction width}
+%% Def: TN of a circuit, contraction tree, width; Markov-Shi cc = tw(L(G)) [cited, prose].
+%% Emphasize: lower bounds in the *contraction-method* model (incl. slicing), not
+%% unconditional hardness (decision-diagram counterexamples exist).
+\subsection{Stems, pathwidth, and the sweep cut}
+%% Huang et al. coin "stem" (geometric sense); stem order == path decomposition;
+%% sweepCut n d = min(n, floor(sqrt n)*d); Sycamore numbers 10^18 / 10^24.
+\subsection{Lean 4 and Mathlib}
+%% One paragraph; version pins (Lean v4.30.0, Mathlib v4.30.0); #print axioms discipline.
+
+%% ===================================================================
+\section{The Formal Framework}\label{sec:framework}
+%% Defs.lean: QTensor, cutEquiv, flatten, squareFlatten, tensorOfMatrix, bellWitness.
+%% Key design: flattening across a cut as the *only* interface between graph combinatorics
+%% and linear algebra; eval commutes with flatten (flatten_map) transports genericity.
+\begin{lstlisting}
+abbrev QTensor (I R : Type*) := (I → Fin 2) → R
+
+def flatten (T : QTensor I R) :
+    Matrix ({i // p i} → Fin 2) ({i // ¬ p i} → Fin 2) R :=
+  Matrix.of fun a b => T ((cutEquiv p).symm (a, b))
+\end{lstlisting}
+%% CircuitGraph abstraction (Order, width, IsStem, cc = sInf, pw = sInf over stems);
+%% proved skeleton: cc_le_pw, exists_stem_pw, optimal_stem_within_const.
+
+%% ===================================================================
+\section{Contraction Rigidity}\label{sec:rigidity}
+%% LemmaB.lean: generic_nonsingular (the engine). Rigidity.lean: BulkEntangling,
+%% ContractionRigid, contraction_rigidity. Matching.lean: Kronecker routing
+%% det_bondProd_ne_zero; matching_contractionRigid with explicit matching data.
+%% Gates.lean + Worstcase.lean: the hypothesis is non-vacuous for real gate sets
+%% (X..fSim all nonsingular; iSWAP/CNOT/fSim realize full Schmidt rank).
+\begin{lstlisting}
+theorem contraction_rigidity
+    (e : ({i // p i} → Fin 2) ≃ ({i // ¬ p i} → Fin 2))
+    {T : QTensor I (MvPolynomial ι K)}
+    (h : BulkEntangling p e T) : ContractionRigid p e T
+\end{lstlisting}
+%% Punchline: the average-case question is *structural*, not probabilistic; the
+%% probability-zero corollary (C.3) is future work but follows from measure-zero varieties.
+
+%% ===================================================================
+\section{Stem Width via Interval Helly}\label{sec:bramble}
+%% Bramble.lean: interval_helly -> some_bag_hits_all -> order_le_maxBag(')
+%% -> pathwidth_ge_order_of_connected. Design insight: pathwidth needs only 1D Helly.
+%% Cross bramble: cross i = row i ∪ col i; k <= 2·order (projection counting).
+%% GridConn.lean: crosses are connected in the true grid (box-product walk embeddings);
+%% grid_pathwidth_lower_unconditional: k <= 2·maxBag, no hypotheses left.
+\begin{lstlisting}
+theorem grid_pathwidth_lower_unconditional (k : ℕ) (hk : 0 < k)
+    (L : LinearBags (Fin k × Fin k)) (hlen : 0 < L.len)
+    (hvint : ...) (hedge : ...) (hcov : ...) :
+    k ≤ 2 * L.maxBag hlen
+\end{lstlisting}
+
+%% ===================================================================
+\section{A Faithful Circuit Model}\label{sec:model}
+%% GridModel.lean. The degeneracy story is worth telling honestly:
+%% v1 model had Order := Unit, width := const 53 -- the stem clause was near-vacuous.
+%% v2: Order = { L : LinearBags // IsPathDecomp k L }, width = actual largest bag.
+%% Lower: bramble theorem. Upper: sliding-window sweep (bag t = positions [t, t+k]),
+%% card <= k+1 by injectivity of column-major position into an Icc window.
+%% cc bounds: k <= 2·cc and cc <= k+1; optimum attained (Nat.sInf_mem);
+%% LatticePathwidthBound holds with C = 1 by construction (order space = stems).
+\begin{lstlisting}
+def gridModel (k : ℕ) : CircuitGraph where
+  Order  := {L : LinearBags (Fin k × Fin k) // IsPathDecomp k L}
+  width  := fun o => bagsWidth o.1
+  IsStem := fun _ => True
+  ...
+\end{lstlisting}
+
+%% ===================================================================
+\section{The End-to-End Sycamore Theorem}\label{sec:endtoend}
+%% CorollaryD.lean (pure arithmetic): sweepCut 53 20 = 53; 10^18 <= 4·2^53·150 < 10^19.
+%% Sycamore.lean: the four-conjunct theorem; #print axioms = standard only.
+\begin{lstlisting}
+theorem sycamore53_lower_bound :
+    CorollaryD.sweepCut 53 20 = 53 ∧
+    ((10:ℕ)^18 ≤ CorollaryD.stemCost 53 20 150 ∧
+      CorollaryD.stemCost 53 20 150 < (10:ℕ)^19) ∧
+    ((∃ o, sycamore53.IsStem o ∧
+        sycamore53.width o = sycamore53.cc) ∧
+      (∀ o, 53 ≤ 2 * sycamore53.width o) ∧
+      (∃ o, sycamore53.width o ≤ 54)) ∧
+    (∃ e T, ContractionRigid leftBlock e T)
+\end{lstlisting}
+
+%% ===================================================================
+\section{Geometric Routing: Brickwork and Lightcones}\label{sec:routing}
+%% Brickwork.lean: Schedule (d layers, <= b straddling gates each); routed_card_le
+%% proves the b·d cap (card_biUnion_le_card_mul); min(n, b·d) achieved; keystone:
+%% deep_brickwork_contractionRigid at size sweepCut.
+%% Causal.lean: bonds are chip qubit pairs within the depth-d lightcone; chain_reach
+%% (1D, exact-length walks); grid_bond_causal (2D chip via boxProd walk lifting);
+%% K·min(m,d) = min(n/2, √n·d) on square chips.
+
+%% ===================================================================
+\section{Axioms Considered Harmful}\label{sec:axioms}
+%% The CPP-audience payload. Tell it straight:
+%% (a) v1 declared: axiom markovShi (G) : G.cc = G.tw;
+%%     axiom latticePathwidthBound (G) (h : G.IsLattice) : G.pw <= C·G.cc;
+%%     axiom treewidthLowerBound ... ;
+%% (b) tw / IsLattice are *free fields* of the abstract structure -> adversarial
+%%     instances falsify all three; we exhibit the three-line False derivations
+%%     (machine-checked, reproduced in the appendix).
+%% (c) The repair: named Props (MarkovShi G, LatticePathwidthBound G C) supplied per
+%%     model; on the concrete model they are *discharged by computation* (C = 1), so the
+%%     end-to-end theorem needs no axiom at all -- strictly stronger than v1 claimed.
+%% (d) Lesson: "cite, don't reprove" must quantify over faithful models, never over
+%%     abstract structures with free semantic fields. Hypothesis-form > axiom-form:
+%%     the reader sees the citation in the statement, and #print axioms stays clean.
+\begin{lstlisting}
+-- v1 (UNSOUND): False was derivable
+axiom latticePathwidthBound (G : CircuitGraph)
+    (hlat : G.IsLattice) : G.pw ≤ C * G.cc
+-- v2 (sound): a named Prop, supplied per model
+def LatticePathwidthBound (G : CircuitGraph) (C : ℕ) :
+    Prop := G.pw ≤ C * G.cc
+\end{lstlisting}
+
+%% ===================================================================
+\section{Related Work}\label{sec:related}
+%% - Markov--Shi 2008 (cc = tw); Boixo et al. (grid tw values); Huang et al. (stem);
+%%   SW-TNC (multi-stem); Pan--Zhang big-head; Kalachev et al. (reuse) -- distinguish
+%%   geometric vs reuse senses of "stem".
+%% - Napp et al.: shallow-2D simulable phase bounds the regime; our deep-bulk hypothesis.
+%% - Formalization: Doczkal--Pous (Coq graph theory, treewidth-two); TNLean / multi-agent
+%%   autoformalization of MPS (different scope: MPS fundamental theorem, no contraction
+%%   complexity); no prior Lean treewidth/pathwidth or TN-contraction development.
+%% - Decision diagrams break the tw barrier -> our bounds are contraction-method bounds.
+
+\section{Limitations and Future Work}\label{sec:limits}
+%% Honest list, mirrors docs §4:
+%% 1. Order space = stem (linear) orders; extension to all tree orders is the pw = Θ(tw)
+%%    literature input, carried as an explicit hypothesis (formalizing subtree Helly +
+%%    tree decompositions is the natural next step; journal version).
+%% 2. The lattice is the deep-regime 1D-chain spacetime grid; the (2+1)D chip bramble
+%%    (Kozawa--Otachi--Yamazaki) is future work; the matching side already covers 2D chips.
+%% 3. Constants: upper 54 = k+1 is tight; lower 27 = true cross-bramble order; k+1 needs
+%%    the Seymour--Thomas augmented bramble.
+%% 4. Probability corollary (Pr = 0) stated but not formalized.
+
+\section{Conclusion}\label{sec:conclusion}
+%% One paragraph: the full chain -- arithmetic, brambles, genericity, routing -- is now a
+%% single machine-checked theorem with standard axioms only; the axiom-soundness episode is
+%% a transferable lesson for "cite, don't reprove" practice.
+
+%% \begin{acks} TODO camera-ready \end{acks}
+
+\bibliographystyle{ACM-Reference-Format}
+\nocite{*}  % skeleton phase: render all entries; remove once \cite's are in place
+\bibliography{references}
+
+\appendix
+\section{Artifact}\label{app:artifact}
+%% Anonymous artifact link (Zenodo, anonymized) with: source, lake build instructions,
+%% #print axioms check script, and the False-derivation file for §\ref{sec:axioms}
+%% pinned to the v1 commit.
+%% TODO: prepare anonymized archive before submission.
+
+\section{False Derivations from the v1 Axioms}\label{app:false}
+%% Reproduce AxiomAudit.lean (badTw, badLattice, treewidthLowerBound W=0 instantiations).
+
+\end{document}
