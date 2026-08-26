@@ -53,8 +53,10 @@ optimal order (TNCO) is NP-hard. Practice therefore relies on heuristic search -
 hyper-optimized contraction trees, simulated annealing, community detection --- whose results
 can only be judged \emph{relatively}: order $A$ beats order $B$, but how far either is from the
 true optimum is unknown, because no trusted \emph{absolute} yardstick exists. We supply that
-yardstick: machine-checked lower bounds on the cost of \emph{every} contraction order of a
-network, formalized in Lean~4 over Mathlib ($\sim$2{,}100 lines, no \texttt{sorry},
+yardstick: machine-checked lower bounds on the cost of every \emph{sweep-style (stem)}
+contraction order --- unconditionally --- extending to arbitrary contraction trees under a
+single explicitly-stated published hypothesis ($\pw = \Theta(\tw)$ on lattices), formalized
+in Lean~4 over Mathlib ($\sim$2{,}200 lines, no \texttt{sorry},
 \textbf{zero custom axioms}). A trustworthy cost floor needs two independent ingredients, and
 we certify both. First, a \emph{width} floor: a bramble is a combinatorial dual certificate for
 pathwidth, and we prove the bramble bound self-contained via an elementary interval-Helly
@@ -67,8 +69,10 @@ the capability hypothesis reduces, via Kronecker routing, to a purely combinator
 matching. We instantiate the framework on a faithful model whose orders are genuine path
 decompositions of the circuit's spacetime lattice --- widths derived, never postulated --- and
 obtain, at the Sycamore-53 benchmark scale, the first contraction order carrying an absolute,
-machine-checked optimality certificate: every stem order has width $\ge 27$, our explicit
-sweep achieves $\le 54$. Finally we report a cautionary tale: our first iteration cited three
+machine-checked optimality certificate: every stem order has width $\ge 27$ and pays total
+cost $\ge 2^{27}$, no low-rank factorization crosses the cut below inner dimension $2^{53}$
+generically, and our explicit sweep achieves width $\le 54$. Finally we report a cautionary
+tale: our first iteration cited three
 published graph theorems as axioms, and all three made the ambient theory inconsistent
 (\texttt{False} was machine-derivable) --- a lower bound is only as absolute as its proof, and
 we give the repair idiom.
@@ -118,7 +122,11 @@ Lean, Mathlib, pathwidth, brambles, Schwartz--Zippel, quantum circuit simulation
   \item \textbf{An absolute yardstick for TNCO (\S\ref{sec:framework},\S\ref{sec:model}).}
     A formal cost/width model in which ``no contraction order beats bound $L$'' is a
     theorem quantified over a \emph{genuine} order space --- real path decompositions of
-    the network graph, widths derived, never postulated.
+    the network graph, widths derived, never postulated --- with an explicit cost object:
+    \lstinline|orderCost| sums the materialized boundary tensors, and the certified floor
+    is a \emph{cost} statement (\lstinline|gridModel_cost_floor|:
+    $2^{\lceil k/2\rceil} \le \mathrm{cost}(o)$ for every order $o$), not merely a width
+    statement.
   \item \textbf{Bramble certificates in Lean (\S\ref{sec:bramble}).} Brambles are
     combinatorial \emph{dual certificates} for width, playing the role LP duality plays for
     branch-and-bound floors. Stem (sweep) orders are exactly path decompositions, whose
@@ -132,13 +140,19 @@ Lean, Mathlib, pathwidth, brambles, Schwartz--Zippel, quantum circuit simulation
     $\Rightarrow$ \lstinline|ContractionRigid| --- one full-rank configuration upgrades to
     full rank outside a proper subvariety (Schwartz--Zippel, no probability); the
     hypothesis reduces via Kronecker routing to a combinatorial cross-cut matching.
-    Random circuits become corollaries, and generic instances are fenced against
-    value-structure shortcuts (the decision-diagram loophole).
+    The payoff is a formal \emph{no-compression theorem}
+    (\lstinline|ContractionRigid.no_compression|): generically, the cut flattening admits
+    no factorization with inner dimension below $2^k$ --- no MPS-style bond, no
+    rank-revealing compression undercuts the floor (the decision-diagram loophole),
+    except on a measure-zero set of instances.
   \item \textbf{The first absolutely-certified benchmark instance
     (\S\ref{sec:endtoend}).} At the Sycamore-53 scale, one machine-checked theorem pins
-    every stem order to width $\ge 27$ while our explicit sweep achieves $\le 54$ ---
-    an optimality-gap certificate of a factor $\le 2$ in the exponent, with
-    \texttt{\#print axioms} reporting standard axioms only.
+    every stem order to width $\ge 27$ and total cost $\ge 2^{27}$
+    (\lstinline|sycamore53_cost_floor|), fences the cut against factorizations of inner
+    dimension $< 2^{53}$ for generic gate values (\lstinline|sycamore53_bond_floor|),
+    while our explicit sweep achieves width $\le 54$ --- an optimality-gap certificate of
+    a factor $\le 2$ in the exponent, with \texttt{\#print axioms} reporting standard
+    axioms only.
   \item \textbf{Axioms considered harmful (\S\ref{sec:axioms}).} Our first iteration cited
     three published graph theorems as global axioms over an abstract structure; all three
     are falsifiable by adversarial instances and \texttt{False} was derivable --- the

@@ -88,6 +88,14 @@ Sycamore 53-20 ≈ `10^18`、Sycamore-70 ≈ `10^24`。
   `∀ 序: 53 ≤ 2·width`）；上界来自显式滑动窗口 sweep 分解（`sweepBags`，`width ≤ 54 = k+1` 教科书紧常数）；
   `27 ≤ cc ≤ 54`（`sycamore53_cc_bounds`）。`IsStem ≡ True` 在此为**定义性**而非退化：
   该模型的序空间本就是线性（stem）序全体；推广到树序即 `pw=Θ(tw)` 文献输入。
+- **代价对象与认证 floor**（新叙事的字面兑现）：`bagsCost`（各步物化边界张量的尺寸和）+
+  `orderCost`；**`gridModel_cost_floor` / `sycamore53_cost_floor`：任意序总代价 ≥ 2^27**——
+  下界从"宽度"升级为"代价"陈述。
+- **压缩下界（rigidity 的代价语义粘接）**：`inner_dim_le_of_factorization`（`det ≠ 0` 的方阵
+  无内维 < 边长的因子分解；经 `mulVec` 单射 + `finrank` 论证，避开 `Matrix.rank` 的 universe
+  限制）；**`ContractionRigid.no_compression` / `sycamore53_bond_floor`：generic 参数下割面
+  flattening 无内维 < 2^53 的因子分解**——低秩/MPS/decision-diagram 式压缩在 generic 意义下
+  被定理焊死，宽度 floor 因此是真代价 floor。
 - `#print axioms sycamore53_lower_bound = [propext, Classical.choice, Quot.sound]`：**全库已无
   任何自定义 axiom**。文献输入（`MarkovShi` / `LatticePathwidthBound`）改为具名 `Prop`、按具体
   模型供给；lattice 界在模型上以 `C = 1` 兑现（`sycamore53_latticeBound`），端到端定理成为
