@@ -17,13 +17,14 @@ Answers the two scrutiny questions about the cross-cut matching:
   - **upper bound (PROVED here, constructive):** both sweeps exist, so the optimal width is
     `≤ min(n, √n·d)` (`optimalWidth_le_min`). The time sweep achieves a faithful full-rank
     matching of size `n` (`timeSweep_full_rank`, reusing `chip_contractionRigid`).
-  - **lower bound (CITED, not reproved):** that no contraction beats `min(n, √n·d)` is the grid
-    *treewidth lower bound* (Kozawa–Otachi–Yamazaki via Seymour–Thomas brambles). Mathlib has no
-    treewidth theory and there is no importable formalization, so this single direction stays a
-    cited axiom (`treewidthLowerBound`). Removing it requires formalizing brambles from scratch.
+  - **lower bound (self-proved for stems, CITED for trees):** for the *stem/pathwidth*
+    restriction the bound is machine-proved (`GridConn.grid_pathwidth_lower_unconditional`,
+    standard axioms only); for *arbitrary* tree contraction orders it is the grid treewidth lower
+    bound (Kozawa–Otachi–Yamazaki via Seymour–Thomas brambles), carried as an explicit
+    hypothesis with its reference — Mathlib has no treewidth theory to reprove it.
 
-  Combining the two gives `optimalWidth = min(n, √n·d)` (`optimalWidth_eq_min`), with the exact
-  honest dependency visible via `#print axioms`.
+  Combining the two gives `optimalWidth = min(n, √n·d)` (`optimalWidth_eq_min`), with the
+  literature input visible as the hypothesis `hlow` in the statement itself.
 -/
 import FieldStemProof.Lattice
 import FieldStemProof.CorollaryD
@@ -78,30 +79,26 @@ theorem timeSweep_full_rank {ι K : Type*} [CommRing K] [IsDomain K] (n : ℕ) :
       ContractionRigid leftBlock e T :=
   ⟨_, chip_contractionRigid (K := K) (ι := ι) n⟩
 
-/-! ## (Q2) Lower bound — cited treewidth axiom (the one irreducible piece)
+/-! ## (Q2) Lower bound — an explicit hypothesis, self-proved for the stem/pathwidth restriction
 
 The statement "no contraction order has width below `min(n, √n·d)`" is the grid treewidth lower
 bound, proven in the literature via Seymour–Thomas brambles (bramble of crosses) and computed for
-multidimensional grids by Kozawa–Otachi–Yamazaki. Mathlib lacks treewidth/bramble theory and no
-Lean formalization is importable, so this direction is a cited axiom; removing it is a separate
-bramble-formalization project. -/
-
-/-- `[treewidth lower bound]` (Kozawa–Otachi–Yamazaki; Seymour–Thomas brambles): the optimal
-contraction width `W` of the `n`-qubit depth-`d` spacetime lattice is at least `min(n, √n·d)`.
-A published theorem, cited not reproved. -/
-axiom treewidthLowerBound (n d : ℕ) (W : ℕ)
-    (hopt : W ≤ timeSweepWidth n ∧ W ≤ spaceSweepWidth n d)
-    (hmin : ∀ W', W' ≤ timeSweepWidth n → W' ≤ spaceSweepWidth n d → W ≤ W') :
-    sweepWidth n d ≤ W
+multidimensional grids by Kozawa–Otachi–Yamazaki. For the *stem (pathwidth)* restriction it is
+self-proved here (`GridConn.grid_pathwidth_lower_unconditional`, standard axioms only); the
+generalization to *all* tree contraction orders (`pw = Θ(tw)`) is carried as an explicit
+hypothesis `hlow` where needed, with its literature reference. It must not be a global `axiom`:
+stated over bare naturals with only the two sweep inequalities as hypotheses, `W = 0` satisfies
+them and refutes the statement, making the theory inconsistent. -/
 
 /-- **The optimal contraction width equals `min(n, √n·d)`** (`= CorollaryD.sweepCut`): upper bound
-proved constructively, lower bound by the cited treewidth axiom. This is the full Θ scale. -/
+proved constructively (`optimalWidth_le_min`), lower bound supplied as the explicit hypothesis
+`hlow` — self-proved for stem orders (`GridConn.grid_pathwidth_lower_unconditional`), cited
+(Kozawa–Otachi–Yamazaki / Seymour–Thomas) for arbitrary tree contraction orders. -/
 theorem optimalWidth_eq_min (n d : ℕ) {W : ℕ}
     (htime : W ≤ timeSweepWidth n) (hspace : W ≤ spaceSweepWidth n d)
-    (hopt : ∀ W', W' ≤ timeSweepWidth n → W' ≤ spaceSweepWidth n d → W ≤ W') :
+    (hlow : sweepWidth n d ≤ W) :
     W = sweepWidth n d :=
-  le_antisymm (optimalWidth_le_min n d htime hspace)
-    (treewidthLowerBound n d W ⟨htime, hspace⟩ hopt)
+  le_antisymm (optimalWidth_le_min n d htime hspace) hlow
 
 /-! ## Sycamore-53: the time sweep is optimal, faithful matching of size 53 -/
 
