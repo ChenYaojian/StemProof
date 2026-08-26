@@ -1,0 +1,650 @@
+%% 中文对照稿（内部阅读用）——投稿版为英文 main.tex；本稿与其句对句对应。
+%% Build: latexmk -xelatex main-zh.tex
+\documentclass[11pt]{ctexart}
+
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage[margin=2.6cm]{geometry}
+\usepackage{listings}
+\usepackage{tikz}
+\usetikzlibrary{patterns,arrows.meta,positioning,decorations.pathreplacing,calc}
+\setmonofont{Menlo}
+
+%% ---- Lean listings：与英文版相同的 unicode literate 设置 ----
+\lstdefinelanguage{lean}{
+  keywords={theorem,def,structure,where,fun,by,exact,intro,obtain,refine,show,
+            rcases,rw,omega,ring,calc,have,open,import,namespace,end,variable,abbrev},
+  sensitive=true,
+  comment=[l]{--},
+  morecomment=[s]{/-}{-/},
+  literate={≤}{{$\leq$}}1 {≥}{{$\geq$}}1 {∀}{{$\forall$}}1 {∃}{{$\exists$}}1
+           {∈}{{$\in$}}1 {×}{{$\times$}}1 {⇒}{{$\Rightarrow$}}1 {→}{{$\to$}}1
+           {ℕ}{{$\mathbb{N}$}}1 {ℂ}{{$\mathbb{C}$}}1 {≃}{{$\simeq$}}1
+           {∧}{{$\wedge$}}1 {¬}{{$\neg$}}1 {∩}{{$\cap$}}1 {∪}{{$\cup$}}1
+           {⟨}{{$\langle$}}1 {⟩}{{$\rangle$}}1 {≠}{{$\neq$}}1 {√}{{$\sqrt{}$}}1
+           {Θ}{{$\Theta$}}1 {Ω}{{$\Omega$}}1 {μ}{{$\mu$}}1 {θ}{{$\theta$}}1 {ι}{{$\iota$}}1 {σ}{{$\sigma$}}1
+           {□}{{$\square$}}1 {·}{{$\cdot$}}1 {↑}{{$\uparrow$}}1 {∉}{{$\notin$}}1,
+}
+\lstset{language=lean,basicstyle=\small\ttfamily,columns=fullflexible,
+        keywordstyle=\bfseries,commentstyle=\itshape\color{gray},
+        breaklines=true,frame=single,framerule=0.2pt,xleftmargin=1em}
+
+\newcommand{\cc}{\mathrm{cc}}
+\newcommand{\pw}{\mathrm{pw}}
+\newcommand{\tw}{\mathrm{tw}}
+
+\title{你的收缩顺序离最优还有多远？\\
+       \large 张量网络收缩的机器核验绝对下界\\[2pt]
+       \normalsize （中文对照稿；投稿版为英文 \texttt{main.tex}，本稿句对句对应）}
+\author{匿名作者}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+张量网络收缩的代价由收缩顺序决定，而寻找最优顺序（TNCO）是 NP-hard 的。因此实践依赖启发
+式搜索——hyper-optimized 收缩树、模拟退火、社区检测——其结果只能被\emph{相对地}评判：顺
+序 $A$ 胜过顺序 $B$，但两者距离真实最优还有多远无人知晓，因为不存在可信的\emph{绝对}标尺。
+我们补上这把标尺：对每一个 \emph{sweep 型（stem）}收缩顺序的代价给出机器核验的下界——无
+条件地——并在唯一一条显式陈述的已发表假设（晶格上 $\pw=\Theta(\tw)$）下推广到任意收缩树；
+全部在 Lean~4 + Mathlib 中形式化（约 2{,}700 行，无 \texttt{sorry}，\textbf{零自定义公
+理}）。一个可信的代价下界需要两个相互独立的部件，我们对两者都给出认证。其一是\emph{宽度}下
+界：bramble 是 pathwidth 的组合对偶证书，我们经由一个初等的区间 Helly 论证把 bramble 界完全
+自证——这是 Lean 中首个 pathwidth 下界理论。其二，宽度必须真正翻译成代价：中间张量的低秩结
+构可能击穿宽度这个代理量（decision diagram 类方法利用的正是这一点）。我们的
+\emph{Contraction Rigidity} 定理从结构上封死这个漏洞：任何\emph{有能力}在割面达到满秩的网
+络，对真代数子簇之外的一切张量取值都满秩——不含概率，且该"能力"前件经 Kronecker 路由约化为
+纯组合的跨割面匹配。我们把框架实例化在晶格族的忠实模型上——这是\emph{校准}类：其真实最优独
+立可知，因此标尺本身的松紧是可检验的——模型的序空间取遍电路时空晶格的真实路径分解，宽度全
+部派生、绝无设定。在 Sycamore-53 基准尺度上，证书是\emph{零间隙}的：每个 stem 序宽度
+$\ge 54$、总代价 $\ge 2^{54}$，我们的显式 sweep 达到宽度 $\le 54$——认证下界与找到的解
+\emph{相遇}，即该 sweep 携带一份 stem 类内最优性的机器核验证明——且 generic 取值下没有任何
+内维低于 $2^{53}$ 的低秩因子分解能穿过割面。
+\end{abstract}
+
+%% ===================================================================
+\section{引言}\label{sec:intro}
+
+张量网络收缩是量子电路经典模拟的主力工具，而它的代价几乎完全由一个离散选择决定：\emph{收缩
+顺序}。选好并不容易——在一般网络上寻找最优顺序是 NP-hard 的~\cite{markov2008simulating}
+——于是十年的实践孕育出丰富的启发式生态：hyper-optimized 收缩树~\cite{gray2021hyper}、
+big-batch 与切片方法~\cite{pan2022solving}、面向 supremacy 电路的 stem 型顺
+序~\cite{huang2020classical}、multi-stem 改进~\cite{swtnc2025}、以及复用感知的变
+体~\cite{kalachev2021recursive}。这些工具令人印象深刻，但它们共享同一个方法论盲区：
+\textbf{它们支持的所有质量评判都是相对的}。一个新启发式的验证方式，是在基准集上击败前一
+个。而无论哪个顺序距离真实最优还有多远，都无从得知——因为没有任何可信的东西从下方兜住最优
+值。"state of the art" 的字面含义只是"我们碰巧找到的顺序里最好的那个"（图~\ref{fig:yardstick}）。
+
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[scale=0.9, font=\small]
+  \draw[-{Stealth}] (0,0) -- (0,4.6) node[left=2pt] {代价};
+  \fill[pattern=north east lines, pattern color=red!50] (0.15,0.2) rectangle (6.2,1.0);
+  \draw[red!70!black, very thick] (0.15,1.0) -- (6.2,1.0)
+    node[pos=0.4, above] {\textbf{认证下界} $L$（机器核验的定理）};
+  \node[red!70!black] at (3.2,0.55) {此区域不存在任何收缩顺序};
+  \fill[blue!70!black] (2.0,3.9) circle (2pt) node[right=3pt] {顺序 $A$};
+  \fill[blue!70!black] (2.8,3.1) circle (2pt) node[right=3pt] {顺序 $B$};
+  \fill[blue!70!black] (3.6,1.75) circle (2pt) node[right=3pt] {顺序 $C$（找到的最优）};
+  \draw[-{Stealth}, gray] (2.15,3.8) to[bend left=20]
+    node[midway, right=1pt] {\scriptsize 胜过} (2.75,3.25);
+  \draw[-{Stealth}, gray] (2.95,3.0) to[bend left=20]
+    node[midway, right=1pt] {\scriptsize 胜过} (3.55,1.9);
+  \draw[decorate, decoration={brace, amplitude=4pt}] (5.9,1.75) -- (5.9,1.02)
+    node[midway, right=6pt, align=left] {\scriptsize 认证\\[-2pt]\scriptsize 间隙};
+\end{tikzpicture}
+\caption{收缩顺序的相对评判 vs.\ 绝对评判。启发式可以把找到的顺序互相排名（上方），但只有
+认证下界（下方）才能把找到的最优解变成带可证最优性差距的解。在我们的校准算例上，下界与找到
+的 sweep \emph{相遇}：间隙为零。}
+\label{fig:yardstick}
+\end{figure}
+
+缺失的是一把\emph{绝对标尺}：一个可信的界 $L$，连同一个证明——\emph{任何}收缩顺序的代价都
+不低于 $L$。有了这样的下界，任何找到的顺序 $S$ 都获得一张证书：$\mathrm{cost}(S)/L$ 界定了
+它的最优性差距——正如 LP 对偶界为分支定界的当前解作证，或 UNSAT 证书为 SAT 搜索收尾。TNCO
+领域此前不存在这样的东西。
+
+为什么没有？因为一个\emph{可信的}代价下界必须挡住三种相互独立的攻击，而每种攻击在历史上都
+是致命的（图~\ref{fig:floors}）。第一，支撑下界的图论宽度界可能干脆是错的：宽度理论中的下
+界证明微妙冗长，未经验证的界什么也认证不了。第二，宽度可能翻译不成代价：宽度数的是最大中间
+张量的指标个数，而如果该张量具有低秩结构，更聪明的表示可以付得更少——decision diagram 模拟
+器在结构化实例上确实击穿了宽度代理~\cite{dd2025treewidth}。第三，这个翻译必须对\emph{手头
+的实例}成立，而不只在最坏情形下成立：浅层随机电路尽管宽度很大却是经典易模拟
+的~\cite{napp2022efficient}。我们对三者的回应是同一个：让每一环都成为机器核验的定理，并且
+明确分工——\emph{搜索可以是启发式的，但信任从来不是}：找一个好 bramble（下文的对偶证书）是
+搜索问题；\emph{验证}一个 bramble 是 verified 定理。
+
+\begin{figure}[t]
+\centering
+\resizebox{0.92\textwidth}{!}{%
+\begin{tikzpicture}[font=\small,
+  atk/.style={-{Stealth}, thick, red!60!black}]
+  \node[draw, rounded corners, fill=blue!8, minimum width=6.4cm, align=center] (w) at (0,2.7)
+    {\textbf{宽度下界} --- bramble 作为对偶证书\\[-1pt]
+     {\scriptsize\ttfamily grid\_pathwidth\_exact}};
+  \node[draw, rounded corners, fill=orange!12, minimum width=6.4cm, align=center] (c) at (0,1.35)
+    {\textbf{代价下界} --- $\mathrm{cost}(o)=\sum_t 2^{|B_t|}$\\[-1pt]
+     {\scriptsize\ttfamily gridModel\_cost\_floor}};
+  \node[draw, rounded corners, fill=green!10, minimum width=6.4cm, align=center] (r) at (0,0)
+    {\textbf{压缩下界} --- Contraction Rigidity\\[-1pt]
+     {\scriptsize\ttfamily ContractionRigid.no\_compression}};
+  \draw[atk] (-5.6,2.7) node[left, align=right, font=\scriptsize]
+    {未经验证的\\图论界} -- (w.west);
+  \draw[atk] (-5.6,1.35) node[left, align=right, font=\scriptsize]
+    {宽度只是\\代理量} -- (c.west);
+  \draw[atk] (-5.6,0) node[left, align=right, font=\scriptsize]
+    {低秩逃逸\\（DD/MPS）} -- (r.west);
+  \foreach \y in {2.7,1.35,0} {\draw[red!60!black, thick]
+    (-4.55,\y-0.14) -- (-4.31,\y+0.14) (-4.55,\y+0.14) -- (-4.31,\y-0.14);}
+\end{tikzpicture}}
+\caption{一个可信的代价下界用三层认证结构挡住三种攻击；每一层都是一条仅依赖标准公理的具名
+Lean 定理。}
+\label{fig:floors}
+\end{figure}
+
+本文交付这把标尺，在 Lean~4 + Mathlib~\cite{moura2021lean,mathlib2020} 中形式化：约
+2{,}700 行、17 个模块、无 \texttt{sorry}、零自定义公理——下文每条定理的
+\texttt{\#print axioms} 都只报告 \texttt{propext}、\texttt{Classical.choice}、
+\texttt{Quot.sound}。无条件的下界量化在所有 \emph{sweep 型（stem）}顺序上——这正是
+state-vector 类模拟器与 stem 型 supremacy 策略实际占据的类~\cite{huang2020classical}——并
+在唯一一条显式陈述的已发表假设（晶格上 $\pw=\Theta(\tw)$）下推广到任意收缩树；该假设写在定
+理陈述里，而非全局假定。
+
+\paragraph{贡献。}
+\begin{itemize}
+  \item \textbf{TNCO 的绝对标尺（\S\ref{sec:framework}、\S\ref{sec:model}）。}一个形式化
+    的代价/宽度模型，其中"没有任何收缩顺序低于界 $L$"是一条量化在\emph{真实}序空间上的定理
+    ——序空间即网络图的真实路径分解，宽度全部派生、绝无设定——并配有显式代价对象：
+    \texttt{orderCost} 对物化的边界张量求和，认证下界是关于\emph{代价}的陈述
+    （\texttt{gridModel\_cost\_floor}：$N\times N$ 晶格的每个序 $o$ 满足
+    $2^{N+1}\le\mathrm{cost}(o)$），而不只是关于宽度的陈述。
+  \item \textbf{Lean 中的 bramble 证书（\S\ref{sec:bramble}）。}bramble 是宽度的组合
+    \emph{对偶证书}，扮演 LP 对偶之于分支定界下界的角色：无论 bramble 是如何找到的——手
+    工、启发式搜索——被核验的定理都把它变成绝对下界。stem（sweep）序恰好是路径分解，其对偶
+    论证只需\emph{区间} Helly——初等，不同于 treewidth 所需而 Mathlib 尚缺的子树 Helly。我
+    们对真正的\emph{相触（touching）}bramble（块相交\emph{或}相邻）证明了该界，并实例化两
+    个：初等十字（阶 $\Theta(k)$）与增广的 Seymour--Thomas 式 bramble
+    （\S\ref{sec:exact}），后者的阶 $k+2$ 把 grid 下界钉到\emph{精确}。这是
+    Lean/Mathlib 中首个 pathwidth 下界理论。
+  \item \textbf{Contraction Rigidity：宽度 $\Rightarrow$ 代价，generic 意义下
+    （\S\ref{sec:rigidity}）。}只有中间张量不发生秩坍缩，宽度下界才是代价下界。我们从结构
+    上封死这个漏洞：\texttt{BulkEntangling} $\Rightarrow$ \texttt{ContractionRigid}——一
+    个满秩配置升级为真子簇之外处处满秩（Schwartz--Zippel，无概率）；前件经 Kronecker 路由
+    约化为组合的跨割面匹配。落点是一条形式化的\emph{无压缩定理}
+    （\texttt{ContractionRigid.no\_compression}）：generic 意义下，割面 flattening 不存在
+    内维低于 $2^k$ 的因子分解——没有 MPS 式的 bond、没有任何秩揭示压缩能击穿下界
+    （decision diagram 漏洞），除非落在一个零测度的实例集合上。
+  \item \textbf{零间隙的认证基准算例（\S\ref{sec:endtoend}）。}在 Sycamore-53 尺度上，一条
+    机器核验定理把最优值精确钉死：$\cc=54$（\texttt{sycamore53\_cc\_exact}），每个 stem 序
+    总代价 $\ge 2^{54}$（\texttt{sycamore53\_cost\_floor}），generic 门取值下割面被挡住内
+    维 $<2^{53}$ 的因子分解（\texttt{sycamore53\_bond\_floor}），而显式 sweep 达到下界——
+    一个携带机器核验\emph{最优性证明}的找到的解，其 \texttt{\#print axioms} 只报告标准公理。
+  \item \textbf{几何路由（\S\ref{sec:routing}）。}匹配前件在真实硬件图上被实现：$b\cdot d$
+    深度封顶是一条门计数定理，bond 可达性是 1D 链与 2D 芯片上的显式光锥 walk。
+\end{itemize}
+
+%% ===================================================================
+\section{背景}\label{sec:background}
+
+\subsection{张量网络、顺序与宽度}
+量子电路编译为张量网络：每个门一个张量，每条线一个共享指标。模拟电路即把网络收缩为标量，
+\emph{收缩顺序}调度两两合并。顺序的代价由其最宽的中间张量主导：一个有 $w$ 个开放指标的中间
+张量持有 $2^w$ 个分量。Markov 与 Shi~\cite{markov2008simulating} 把所有顺序上的最优宽度与
+网络线图的 treewidth 等同起来，这钉住了\emph{收缩范式}的复杂度（含指标切片——它以内存换时
+间，但不减少总功）。以下两条界定了全文的适用范围。其一，收缩范式的界不是无条件硬度论断：利
+用\emph{取值}结构的表示——stabilizer 态、decision
+diagram~\cite{dd2025treewidth}——在结构化实例上能胜过宽度，且浅层随机 2D 电路本身就是经典
+易模拟的~\cite{napp2022efficient}。因此我们的下界生活在收缩范式之内，且
+\S\ref{sec:rigidity} 证明对 \emph{generic} 张量取值连"取值结构"这条逃逸通道也被封死。其
+二，TNCO 的 NP-hardness 是关于一般网络的陈述；在平面 grid 上宽度是教科书已知的——而这恰恰
+是晶格族在 \S\ref{sec:endtoend} 中够格充当\emph{校准}类的原因。
+
+\subsection{stem 序即路径分解}
+在 supremacy 型电路的实践中占主导的顺序是 \emph{stem}~\cite{huang2020classical}：一个不断
+长大的张量把网络一块块吸收进来，恰如 state vector 扫过电路。用树的语言说，收缩树是一条
+caterpillar——带叶子的脊柱。本文核心的组合恒等式（图~\ref{fig:stemsweep}）是：
+\textbf{一个 stem 序与网络图的一个路径分解是同一份数据}：第 $t$ 个 bag $B_t$ 是吸收 $t$ 步
+后已吸收区域的边界，序的宽度是最大 bag，最优 stem 宽度即 pathwidth。正是这个恒等式使 stem
+序的认证下界在今天即可形式化：pathwidth 的下界依赖\emph{区间} Helly（\S\ref{sec:bramble}），
+一个一维论证；而 treewidth 需要 Mathlib 尚不具备的子树 Helly 性质。
+
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[scale=0.52, font=\scriptsize]
+  \begin{scope}
+    \fill[gray!15] (-0.4,-0.4) rectangle (1.45,4.4);
+    \foreach \x in {0,...,4} \foreach \y in {0,...,4} {
+      \draw[gray] (\x,\y) circle (1.6pt);
+      \ifnum\x<4 \draw[gray!70] (\x+0.08,\y) -- (\x+0.92,\y); \fi
+      \ifnum\y<4 \draw[gray!70] (\x,\y+0.08) -- (\x,\y+0.92); \fi
+    }
+    \foreach \y in {0,...,4} \fill[orange] (2,\y) circle (2.6pt);
+    \draw[very thick, dashed, orange!80!black] (1.55,-0.5) -- (1.55,4.5);
+    \node[orange!80!black] at (2.0,5.05) {bag $B_t$ = 前沿};
+    \node[gray!60!black] at (0.5,-1.0) {已吸收};
+    \draw[-{Stealth}, thick] (0.3,4.9) -- (1.3,4.9) node[midway, above] {扫描};
+  \end{scope}
+  \node at (6.3,2) {\Large$\;=\;$};
+  \node[align=center] at (6.3,2.8) {同一份\\数据};
+  \begin{scope}[shift={(8.2,0)}]
+    \foreach \i in {0,...,5} \fill[blue!70!black] (\i*1.1,2.6) circle (2.6pt);
+    \foreach \i in {0,...,4} \draw[blue!70!black, very thick]
+      (\i*1.1+0.07,2.6) -- (\i*1.1+1.03,2.6);
+    \foreach \i/\n in {0/1,1/2,2/1,3/2,4/1,5/1} {
+      \ifnum\n=1
+        \draw[gray] (\i*1.1,2.52) -- (\i*1.1,1.7); \draw[gray] (\i*1.1,1.7) circle (1.6pt);
+      \else
+        \draw[gray] (\i*1.1,2.52) -- (\i*1.1-0.3,1.7); \draw[gray] (\i*1.1-0.3,1.7) circle (1.6pt);
+        \draw[gray] (\i*1.1,2.52) -- (\i*1.1+0.3,1.7); \draw[gray] (\i*1.1+0.3,1.7) circle (1.6pt);
+      \fi
+    }
+    \node[blue!70!black] at (2.75,3.25) {脊柱（不断长大的张量）};
+    \node[gray!60!black] at (2.75,1.1) {已吸收的叶子};
+  \end{scope}
+\end{tikzpicture}
+\caption{stem（caterpillar）收缩序\emph{就是}路径分解：脊柱上第 $t$ 个中间张量的开放指标恰
+为前沿 bag $B_t$。序的宽度 $=$ 最大 bag；最优 stem 宽度 $=$ pathwidth。}
+\label{fig:stemsweep}
+\end{figure}
+
+\subsection{扫描割面与基准尺度}
+对 $n$ 比特、深度 $d$ 的晶格电路，两个典范扫描给出割面尺寸 $n$（时间向）与
+$\lfloor\sqrt{n}\rfloor\cdot d$（空间向），故可达的宽度尺度为
+$\mathrm{sweepCut}(n,d)=\min(n,\lfloor\sqrt{n}\rfloor d)$；在 Sycamore-53 参数
+$(n,d)=(53,20)$~\cite{arute2019quantum} 下这个值是 $53$，而民间流传的代价估计
+$4\cdot 2^{53}\cdot 150\approx 10^{18}$ 是纯算术，我们的开发同样将其认证
+（\texttt{CorollaryD}）。全文中"Sycamore-53 尺度"指这组参数；我们实例化的晶格是线链的深
+regime 时空 grid（保真度范围见 \S\ref{sec:endtoend}）。
+
+\subsection{Lean 4 与 Mathlib}
+开发构建于 Lean~4 与 Mathlib（均钉在 v4.30.0），使用 \texttt{SimpleGraph} 盒积表示晶格、
+\texttt{Finset} 组合学表示 bramble 与 transversal、\texttt{MvPolynomial} 加矩阵行列式驱动
+genericity 引擎。审计接口是 \texttt{\#print axioms}：本文引用的每条定理都报告
+\texttt{[propext, Classical.choice, Quot.sound]}——库中不存在任何自定义公理，我们依赖的唯
+一文献输入（晶格上 $\pw=\Theta(\tw)$）以显式假设出现在定理陈述\emph{内部}，从不作为环境假定。
+
+%% ===================================================================
+\section{形式化框架}\label{sec:framework}
+
+整个开发干净地分成线性代数与组合两半，而让两半都保持简单的设计决策是：它们只在一个接口相遇
+——\emph{张量跨割面的 flattening}。
+
+线性代数一侧，腿集为 $I$ 的张量就是每条腿一个比特所索引的数组，割面是腿上的谓词 $p$；
+flattening 把张量重排成矩阵，行是 $p$ 侧的赋值，列是其余腿的赋值：
+
+\begin{lstlisting}
+abbrev QTensor (I R : Type*) := (I → Fin 2) → R
+
+def flatten (T : QTensor I R) :
+    Matrix ({i // p i} → Fin 2) ({i // ¬ p i} → Fin 2) R :=
+  Matrix.of fun a b => T ((cutEquiv p).symm (a, b))
+\end{lstlisting}
+
+该矩阵的秩即跨割面的 Schmidt 秩，而"无秩坍缩"——\S\ref{sec:rigidity} 所认证的性质——恰是
+平衡割面处其方形形式的非奇异性。一条引理承担全部输运工作：逐元求值与 flattening 交换
+（\texttt{flatten\_map}），因此对多项式元证得的任何 genericity 陈述都下降到每个具体取值。
+
+组合一侧，电路图由其收缩序空间建模：类型 \texttt{Order}、每个序的派生量 \texttt{width}、谓
+词 \texttt{IsStem}，以及两个最优值 $\cc$（宽度在全体序上的下确界）与 $\pw$（在 stem 序
+上）。已证的骨架小而无条件：$\cc\le\pw$、stem 最优被达到、以及\emph{给定}界
+$\pw\le C\cdot\cc$ 时存在与最优相差因子 $C$ 之内的 stem 序。文献输入被刻意做成\emph{非}公
+理：\texttt{MarkovShi G} 与 \texttt{LatticePathwidthBound G C} 是具名 \texttt{Prop}，调用
+者必须为手头的具体模型供给——而在 \S\ref{sec:model} 的模型上后者由计算兑现，因此本文没有
+任何定理携带未证的环境假设。
+
+%% ===================================================================
+\section{Contraction Rigidity}\label{sec:rigidity}
+
+只有最宽的中间张量真正携带 $2^w$ 个自由度，宽度下界才认证代价。文献把这当作 average-case
+问题——"Haar 随机电路的割面以高概率满秩"——并用随机矩阵分析作答，既笨重又对 regime 脆
+弱~\cite{napp2022efficient}。我们把概率问题换成结构问题，答案变成 Schwartz--Zippel 式
+genericity 的两行推论。
+
+称参数化张量族 $T$（元是门参数的多项式）在平衡割面处 \texttt{BulkEntangling}，若\emph{某
+个}参数点使割面 flattening 非奇异——即架构\emph{有能力}达到满 Schmidt 秩。称它
+\texttt{ContractionRigid}，若 flattening 的行列式是非零多项式，且在该多项式零集之外的每个
+参数处 flattening 非奇异。结构定理是：能力升级为 genericity：
+
+\begin{lstlisting}
+theorem contraction_rigidity
+    (e : ({i // p i} → Fin 2) ≃ ({i // ¬ p i} → Fin 2))
+    {T : QTensor I (MvPolynomial ι K)}
+    (h : BulkEntangling p e T) : ContractionRigid p e T
+\end{lstlisting}
+
+引擎是初等的：在一个取值处非零的行列式是非零多项式，而非零多项式只在真子簇上消没。不含概
+率；零测度推论（对任意连续门测度 $\Pr[\text{秩坍缩}]=0$）是一步之遥的推论，留作后续工作。
+
+让该定理可用的关键在于其前件是\emph{组合的}（图~\ref{fig:matching}）。若割面两侧各 $k$ 个
+比特能被一个完美匹配配对、每对携带一个非奇异的两比特 bond，则见证配置下的 flattening 是各
+bond 的 Kronecker 积，而非奇异块的积非奇异（\texttt{det\_bondProd\_ne\_zero}，对 $k$ 归纳
+加 \texttt{det\_kronecker}）。于是为一个架构检验 \texttt{BulkEntangling} 约化为展示一个跨
+割面匹配——一个图条件，在 \S\ref{sec:routing} 中对硬件图兑现。该前件对真实门集非空：开发
+证明了标准门库（$X, Y, Z, H, S, T, \sqrt{X}, \mathrm{CZ}, \mathrm{SWAP}, \mathrm{CNOT},
+\mathrm{iSWAP}, \mathrm{fSim}(\theta,\phi)$ 等）全部 $\det\neq 0$，因此恒等 bond、Bell 对
+和 Sycamore 原生的 $\mathrm{fSim}$ 都合格。
+
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[scale=0.75, font=\small]
+  \draw[dashed, thick] (2.1,-0.6) -- (2.1,3.6) node[above] {割面};
+  \foreach \y/\j in {0/4,1/3,2/2,3/1} {
+    \draw[fill=gray!15] (0.9,\y) circle (7pt) node {$L_{\j}$};
+    \draw[fill=gray!15] (3.3,\y) circle (7pt) node {$R_{\j}$};
+    \draw[blue!70!black, very thick] (1.16,\y) -- (3.04,\y)
+      node[midway, above] {\scriptsize $B_{\j}$};
+  }
+  \node[align=left, anchor=west] at (4.6,2.4)
+    {每个 bond：$\det B_j \neq 0$};
+  \node[align=left, anchor=west] at (4.6,1.6)
+    {$\Rightarrow$ flattening $=\bigotimes_j B_j$};
+  \node[align=left, anchor=west] at (4.6,0.8)
+    {$\Rightarrow$ 在\emph{一个}点达到 Schmidt 秩 $2^{k}$};
+  \node[align=left, anchor=west] at (4.6,0.0)
+    {$\Rightarrow$ \emph{generic} 满秩（SZ）};
+\end{tikzpicture}
+\caption{Kronecker 路由把刚性前件约化为组合：带非奇异 bond 的跨割面完美匹配使割面
+flattening 成为 Kronecker 积，于是在一个门配置处满秩——而 Schwartz--Zippel 把一个点升级为
+全体 generic 参数。全程无概率。}
+\label{fig:matching}
+\end{figure}
+
+\paragraph{从秩到代价：无压缩定理。}
+最后一步把刚性焊到代价叙事上。若割面 flattening $M$ 经内维为 $r$ 的指标集分解为
+$M=A\cdot B$——一个 MPS 式的 bond、一个 decision diagram 的节点割、任何秩揭示压缩——则
+$r$ 从上方界住 $M$ 的秩。形式化地，对刚性族及零集之外的任何参数：
+
+\begin{lstlisting}
+theorem ContractionRigid.no_compression ... :
+    squareFlatten p e (fun x => eval v (T x)) = A * B →
+    2 ^ Fintype.card {i // p i} ≤ r
+\end{lstlisting}
+
+\noindent （经 \texttt{M.mulVec} 的单射性与 \texttt{finrank} 在单射下的单调性证得）。因此
+generic 意义下，\emph{没有任何}表示能以低于 $2^k$ 的内维穿过割面：decision diagram 的逃生
+门被封死，除非落在零测度的实例集合上。结构化实例——stabilizer 电路、真正低秩的张量——恰好
+生活在那个零测集内并且可以击穿下界；这是 generic 实例证书的正确语义，而非缺陷。
+
+%% ===================================================================
+\section{经由区间 Helly 的 stem 宽度}\label{sec:bramble}
+
+宽度下界是 pathwidth 下界，其形式化接口刻意保持极小。一个候选 stem 序是一个
+\texttt{LinearBags}——有限的 bag 序列——连同路径分解的三条定义公理：每个顶点所在的 bag 构
+成连续区间（\texttt{vint}）、每条边落在某个 bag 内（\texttt{edge}）、每个顶点被覆盖
+（\texttt{cov}）。下界所需的一切都从这三条导出。
+
+对偶证书是 \emph{bramble}：一族连通、两两相触的顶点块。其\emph{阶}是 transversal（与每个块
+相交的集合）的最小尺寸，而要证的界是：任何路径分解的最大 bag 至少是该阶。证明
+（图~\ref{fig:helly}）正是 pathwidth 限制开始回报的地方。连通性加上边覆盖公理迫使每个块沿
+一段连续的指标\emph{区间}与 bag 相遇（\texttt{bag\_meets\_betweenness}，对 walk 归纳）；两
+两相触迫使这些区间两两重叠；而两两重叠的区间有公共点——区间 Helly 性质，其全部证明就是"取
+最大的左端点"（\texttt{interval\_helly}，六行）。公共指标处的 bag 与每个块相遇，因此是一个
+transversal，其尺寸界住阶。对 treewidth 同样的论证需要子树的 Helly 性质，Mathlib 没有；对
+pathwidth 一维情形即够——这就是认证 stem 下界在\emph{今天}就可获得的原因。
+
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[scale=0.72, font=\scriptsize]
+  \foreach \i in {1,...,8} {
+    \draw[gray!60, fill=gray!8] (\i-0.42,0) rectangle (\i+0.42,0.7);
+    \node at (\i,0.35) {$B_{\i}$};
+  }
+  \draw[blue!70!black,   line width=3pt] (1.6,1.15) -- (6.4,1.15)
+    node[pos=0.1, above] {块 $\beta_1$};
+  \draw[orange!85!black, line width=3pt] (3.6,1.6)  -- (8.4,1.6)
+    node[pos=0.9, above] {块 $\beta_2$};
+  \draw[green!55!black,  line width=3pt] (0.6,2.05) -- (5.4,2.05)
+    node[pos=0.1, above] {块 $\beta_3$};
+  \draw[dashed, thick, red!70!black] (5,-0.35) -- (5,2.5);
+  \node[red!70!black, align=center] at (5,2.9)
+    {公共 bag（区间 Helly）：\\与\emph{每个}块相遇 $\Rightarrow$ $|B|\ge$ 阶};
+\end{tikzpicture}
+\caption{pathwidth 的对偶论证。连通块沿路径分解的连续指标\emph{区间}与 bag 相遇；两两相触
+的块给出两两重叠的区间；区间 Helly（最大左端点）产出一个与所有块相遇的 bag，因此最大 bag
+至少是 bramble 的 transversal 阶。只需要一维 Helly——这就是 stem 序下界今天即可形式化的原因。}
+\label{fig:helly}
+\end{figure}
+
+两个改进使该界超越玩具 bramble 可用。第一，块可以\emph{相触而不相交}——真正的 bramble 条件
+允许相邻——此时公共指标来自边覆盖公理而非公共顶点
+（\texttt{pathwidth\_ge\_order\_of\_touching}）。第二，整个开发以任意有限类型为索引，因此
+结构化的 bramble（\S\ref{sec:exact}）可以自然编码。用初等的\emph{十字} bramble——第 $i$ 块
+是第 $i$ 行并第 $i$ 列，经盒积 walk 嵌入证明其在真实 grid 图中连通——实例化，即得到完全无
+条件的 $\Theta(k)$ 下界：
+
+\begin{lstlisting}
+theorem grid_pathwidth_lower_unconditional (k : ℕ) (hk : 0 < k)
+    (L : LinearBags (Fin k × Fin k)) (hlen : 0 < L.len)
+    (hvint : ...) (hedge : ...) (hcov : ...) :
+    k ≤ 2 * L.maxBag hlen
+\end{lstlisting}
+
+%% ===================================================================
+\section{精确下界：增广 bramble}\label{sec:exact}
+
+对渐近学而言，$\Theta(k)$ 就是故事的终点；对一把\emph{标尺}而言不是。用 $k/2$ 的下界对上
+$k+1$ 的 sweep，只能认证"指数意义下相差不超过两倍"——一张弱证书，而且是不必要的弱，因为松
+掉的部分全在 bramble 里。十字 bramble 的阶真的只有 $\lceil k/2\rceil$：一个顶点 $(i,j)$ 同
+时命中两个十字。要关掉这个间隙需要更好的对偶见证——Seymour--Thomas 风
+格~\cite{seymour1993graph}的增广 bramble（图~\ref{fig:augmented}）：在
+$(k{+}1)\times(k{+}1)$ 的 grid 上，取 $k\times k$ 子网格的 $k^2$ 个十字，加上末行，加上去
+掉角点的末列。
+
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[scale=0.62, font=\scriptsize]
+  \fill[blue!6] (-0.45,0.55) rectangle (4.45,5.45);
+  \foreach \x in {0,...,5} \foreach \y in {0,...,5} {
+    \ifnum\x<5 \draw[gray!50] (\x+0.1,\y) -- (\x+0.9,\y); \fi
+    \ifnum\y<5 \draw[gray!50] (\x,\y+0.1) -- (\x,\y+0.9); \fi
+  }
+  \foreach \x in {0,...,5} \foreach \y in {0,...,5} \draw[gray] (\x,\y) circle (1.7pt);
+  \foreach \x in {0,...,4} \fill[blue!70!black] (\x,3) circle (2.6pt);
+  \foreach \y in {1,...,5} \fill[blue!70!black] (2,\y) circle (2.6pt);
+  \node[blue!70!black] at (0.85,4.6) {十字 $(i,j)$};
+  \foreach \x in {0,...,5} \fill[red!75!black] (\x,0) circle (2.6pt);
+  \node[red!75!black] at (6.35,0) {末行};
+  \foreach \y in {1,...,5} \fill[green!55!black] (5,\y) circle (2.6pt);
+  \node[green!55!black] at (6.55,3.4) {末列};
+  \draw[very thick, red!75!black]   (2,0.15) -- (2,0.85);
+  \draw[very thick, green!55!black] (4.15,3) -- (4.85,3);
+  \node[align=left, anchor=west] at (-0.2,-1.2)
+    {仅相触的边：十字与边界块\emph{不相交}};
+\end{tikzpicture}
+\caption{$(k{+}1)\times(k{+}1)$ grid 上的增广 bramble：$k^2$ 个子网格十字（蓝）、末行
+（红）、去角末列（绿）。边界块只通过边与十字相触，恰由相触 bramble 界
+（\texttt{pathwidth\_ge\_order\_of\_touching}）经边覆盖公理处理。计数：transversal 需要一
+个红顶点、一个绿顶点、以及 $k$ 个子网格顶点——否则某行 $i_0$ \emph{且}某列 $j_0$ 同时被漏
+掉，十字 $(i_0,j_0)$ 无人命中——故阶 $\ge k+2$，与 sweep 精确相遇。}
+\label{fig:augmented}
+\end{figure}
+
+三个形式化要点值得记录。第一，边界块与每个十字\emph{不相交}——它们只通过边相触——这正是
+\S\ref{sec:bramble} 的相触 bramble 界为之而生的场景。第二，子网格十字的连通性需要不越出子
+网格的 walk；我们构造带显式支撑界的递增链 walk，并把两条臂都路由到十字中心。第三，
+transversal 计数是经典的"漏一行且漏一列"论证，用投影形式化：transversal 必须包含一个末行顶
+点与一个末列顶点（两个不属于任何十字的不同顶点），且其子网格部分必须覆盖全部 $k$ 个子网格
+行或全部 $k$ 个子网格列——否则某个十字 $(i_0,j_0)$ 无人命中——故阶至少 $k+2$：
+
+\begin{lstlisting}
+theorem grid_pathwidth_exact (k : ℕ) (hk : 0 < k)
+    (L : LinearBags (Fin (k+1) × Fin (k+1))) (hlen : 0 < L.len)
+    (hvint : ...) (hedge : ...) (hcov : ...) :
+    k + 2 ≤ L.maxBag hlen
+\end{lstlisting}
+
+\noindent 这与 \S\ref{sec:model} 的滑动窗口 sweep 精确相遇：grid 的 stem 最优被
+\emph{钉死}，而非夹在区间里。
+
+%% ===================================================================
+\section{忠实的电路模型}\label{sec:model}
+
+一个下界的意义取决于它量化在哪个序空间上，而形式化最脆弱的地方恰在于此：对一个自己设定数值
+的模型证明强命题是容易的。我们的第一版模型正是如此——单个抽象序、恒定宽度——我们汇报这条
+死路，因为对它的修复正是方法论要点：在最终模型中\textbf{一切都不是设定的}。一个序\emph{就
+是}真实 grid 图的路径分解（\S\ref{sec:bramble} 的三条公理，打包为 \texttt{IsPathDecomp}），
+其宽度\emph{就是}它的最大 bag，其代价\emph{就是}它物化的边界张量总尺寸，
+$\mathrm{cost}(o)=\sum_t 2^{|B_t|}$（\texttt{orderCost}）。
+
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[scale=0.62, font=\tiny]
+  \foreach \x in {0,...,4} \foreach \y in {0,...,4} {
+    \ifnum\x<4 \draw[gray!40] (\x+0.12,4-\y) -- (\x+0.88,4-\y); \fi
+    \ifnum\y<4 \draw[gray!40] (\x,4-\y-0.88) -- (\x,4-\y-0.12); \fi
+  }
+  \foreach \x in {0,...,4} \foreach \y in {0,...,4} {
+    \pgfmathtruncatemacro{\p}{\x*5+\y}
+    \ifnum\p<8
+      \draw[fill=gray!45] (\x,4-\y) circle (5pt); \node at (\x,4-\y) {\p};
+    \else\ifnum\p<14
+      \draw[line width=1.4pt, orange!90!black, fill=orange!12] (\x,4-\y) circle (5pt);
+      \node at (\x,4-\y) {\p};
+    \else
+      \draw (\x,4-\y) circle (5pt); \node at (\x,4-\y) {\p};
+    \fi\fi
+  }
+  \node[align=left, anchor=west, font=\scriptsize] at (5.0,3.4)
+    {\textcolor{gray}{$\bullet$} 已吸收（$\mathrm{pos}<t$）};
+  \node[align=left, anchor=west, font=\scriptsize] at (5.0,2.6)
+    {\textcolor{orange!90!black}{$\circ$} bag $=$ 窗口 $[t,\,t{+}k]$};
+  \node[align=left, anchor=west, font=\scriptsize] at (5.0,1.8)
+    {$\circ$ 未来};
+  \node[align=left, anchor=west, font=\scriptsize] at (5.0,1.0)
+    {$|B_t| \le k{+}1$（位置单射）};
+\end{tikzpicture}
+\caption{滑动窗口 sweep（\texttt{sweepBags}，图示 $5\times5$ grid、$t=8$）：顶点按列主序位
+置吸收；第 $t$ 步的 bag 是位置窗口 $[t, t+k]$——活跃前沿加上正被吸收的顶点。每个窗口至多
+$k+1$ 个顶点，实现教科书 grid pathwidth，并与图~\ref{fig:augmented} 的下界相遇。}
+\label{fig:window}
+\end{figure}
+
+\begin{lstlisting}
+def gridModel (k : ℕ) : CircuitGraph where
+  Order  := {L : LinearBags (Fin k × Fin k) // IsPathDecomp k L}
+  width  := fun o => bagsWidth o.1
+  IsStem := fun _ => True
+  ...
+\end{lstlisting}
+
+\noindent 这里 \texttt{IsStem} $\equiv$ \texttt{True} 是定义性的而非退化的：该序空间恰由线
+性（stem）序构成，而把量化扩展到树序正是 $\pw=\Theta(\tw)$ 文献输入，在用到之处以假设携带。
+
+下界是 \S\ref{sec:exact} 的定理，如今直接谈论模型的每一个序。相配的上界是显式滑动窗口
+sweep（图~\ref{fig:window}）：按列主序位置吸收顶点，令第 $t$ 步的 bag 为位置窗口
+$[t, t+k]$——活跃前沿加正被吸收的顶点。窗口满足全部三条分解公理（区间性质是位置上的算术；
+每条 grid 边的位置差为 $1$ 或 $k$，故较小端点处的窗口覆盖它），且由位置单射至多 $k+1$ 个顶
+点。下界与 sweep 相遇，模型的最优被精确钉死，代价下界由
+$2^{\mathrm{width}}\le\mathrm{cost}$ 推出：
+
+\begin{lstlisting}
+theorem gridModel_cc_eq (N : ℕ) (hN : 2 ≤ N) :
+    (gridModel N).cc = N + 1
+
+theorem gridModel_cost_floor (N : ℕ) (hN : 2 ≤ N)
+    (o : (gridModel N).Order) : 2 ^ (N + 1) ≤ orderCost o
+\end{lstlisting}
+
+\noindent 最优更进一步是\emph{被达到的}（经 \texttt{Nat.sInf\_mem}），且
+\texttt{LatticePathwidthBound (gridModel N) 1} 由构造成立，于是
+\S\ref{sec:framework} 的每条假设式定理都在该模型上由计算兑现——公理足迹恰好停在三条标准公理。
+
+%% ===================================================================
+\section{案例研究：零间隙的认证基准算例}\label{sec:endtoend}
+
+为什么在晶格上校准？恰恰因为晶格\emph{不是}困难情形：其宽度是教科书已知的，所以它是唯一能
+拿标尺读数与独立真值对表的实例族。而我们的标尺读数分毫不差。把模型实例化在 Sycamore-53 尺度
+（$N=53$；53 线链的深 regime 时空 grid），一条定理合取整个证书：
+
+\begin{lstlisting}
+theorem sycamore53_lower_bound :
+    CorollaryD.sweepCut 53 20 = 53 ∧
+    ((10:ℕ)^18 ≤ CorollaryD.stemCost 53 20 150 ∧
+      CorollaryD.stemCost 53 20 150 < (10:ℕ)^19) ∧
+    (sycamore53.cc = 54 ∧
+      (∃ o, sycamore53.IsStem o ∧
+        sycamore53.width o = sycamore53.cc) ∧
+      (∀ o : sycamore53.Order,
+        2 ^ 54 ≤ GridModel.orderCost o)) ∧
+    (∃ e T, ContractionRigid leftBlock e T)
+\end{lstlisting}
+
+作为证书来读，四个合取说的是：(i)~民间 $10^{18}$ 估计背后的扫描割面算术是精确的；(ii)~真实
+时空 grid 的\emph{全体} stem 序上的最优值是 $54$——\S\ref{sec:exact} 的下界与
+\S\ref{sec:model} 的 sweep 相遇，故该 sweep 是一个携带机器核验\emph{最优性证明}的找到的解；
+(iii)~每个序的总代价至少 $2^{54}$；(iv)~$53$ 比特割面收缩刚性，故由
+\texttt{no\_compression}，generic 意义下没有内维低于 $2^{53}$ 的因子分解能穿过它
+（\texttt{sycamore53\_bond\_floor}）。对该定理执行 \texttt{\#print axioms} 报告
+\texttt{[propext, Classical.choice, Quot.sound]}。
+
+保真度范围，直说：``Sycamore-53 尺度''固定参数 $(53,20)$ 与割面值；实例化的晶格是线链的深
+regime 时空 grid，而非物理二维芯片的 $(2{+}1)$ 维晶格。证书的匹配一侧已经覆盖二维芯片
+（\S\ref{sec:routing}）；芯片晶格的宽度下界是后续工作（\S\ref{sec:limits}），且本节没有任
+何内容依赖它。
+
+%% ===================================================================
+\section{几何路由：brickwork 与光锥}\label{sec:routing}
+
+\S\ref{sec:rigidity} 的刚性证书消耗一个跨割面匹配，怀疑者理应追问：真实硬件是否真能供给所
+需尺寸的匹配。开发用两条关于 brickwork 电路的组合定理作答，把物理挡在 trusted base 之外。
+其一是计数封顶：深度 $d$、每层至多 $b$ 个跨割面门的调度，至多路由 $b\cdot d$ 个不同的 bond
+——是证出来的，不是假设的（\texttt{routed\_card\_le}，一个 \texttt{card\_biUnion} 界）——
+且 $\min(n, b\cdot d)$ 由显式调度达到。其二是因果可达：bond 不是抽象标签，而是必须处于彼此
+深度 $d$ 光锥内的比特对。在链上，第 $i$ 个嵌套跨割面对相距 $2i+1$，恰当 $i<d$ 时可达，由该
+长度的显式 walk 见证；在二维芯片上，链 walk 逐行经盒积结构抬升，在方形芯片上给出尺寸
+$\min(n/2, \sqrt{n}\,d)$ 的因果可实现匹配——又是 $\mathrm{sweepCut}$ 尺度。合起来：深
+brickwork 电路确实具备把宽度下界变成刚性下界所需的纠缠能力。
+
+%% ===================================================================
+\section{相关工作}\label{sec:related}
+
+\paragraph{TNCO 实践。}hyper-optimized 收缩树~\cite{gray2021hyper}、big-batch 收
+缩~\cite{pan2022solving}、stem 序~\cite{huang2020classical}、multi-stem 调
+度~\cite{swtnc2025}、复用感知搜索~\cite{kalachev2021recursive}定义了当前最前沿；电路图的
+treewidth 估计可追溯到 QuickBB 风格的启发式~\cite{boixo2017simulation}。这条线上的一切质量
+评判都是相对的；没有一个产出对最优的证书。我们的工作与之互补：我们不找顺序，我们给顺序定价。
+
+\paragraph{宽度理论。}收缩--treewidth 对应是 Markov--Shi~\cite{markov2008simulating}；
+grid bramble 归于 Seymour 与 Thomas~\cite{seymour1993graph}，多维 grid 的值由
+Kozawa--Otachi--Yamazaki~\cite{kozawa2021treewidth} 给出，pathwidth--treewidth 关系由
+Groenland 等人~\cite{groenland2023tight}量化。我们在此的贡献不是新图论，而是它的首个认证形
+态，并且工程化到只需要区间 Helly。
+
+\paragraph{对宽度范式的逃逸。}decision diagram 在结构化取值上胜过宽
+度~\cite{dd2025treewidth}，浅层随机 2D 电路可被高效模拟~\cite{napp2022efficient}。两者都塑
+造了我们的陈述：压缩下界显式地限定为 \emph{generic}，regime 假设生活在路由层。
+
+\paragraph{形式化。}证明助理中的图论先例包括 Doczkal 与 Pous 的 Coq
+库~\cite{doczkal2020graph}（minor、treewidth-2）；张量一侧，TNLean 形式化了矩阵乘积态的基
+本定理~\cite{tnlean2026}。两者都不涉及收缩复杂度；据我们所知，这是任何证明助理中首个
+pathwidth 下界理论与首个 TNCO 开发。精神上我们的证书追随 verified SAT/LP checking：搜索可
+以不受信，验证是 verified 的——bramble 之于宽度，正如对偶解之于 LP 下界。
+
+%% ===================================================================
+\section{局限与未来工作}\label{sec:limits}
+
+证书适用范围，按用户可以依赖的声明来陈述。(1)~无条件下界量化在 stem（sweep）序上；推广到任
+意收缩树是 $\pw=\Theta(\tw)$ 晶格输入，以显式假设携带——形式化子树 Helly 与树分解将移除
+它，是自然的下一步。今天的证书读作：没有任何 sweep 型顺序低于 $54$；条件性地，没有任何收缩
+树低于 $\Theta(54)$。(2)~实例化的晶格是深 regime 线链时空 grid；$(2{+}1)$ 维芯片晶格的
+bramble~\cite{kozawa2021treewidth} 是后续工作，而对一般不规则网络框架已经适用——任何
+bramble，无论如何找到，都产出认证下界——因此为实用网络整理 bramble 库是工具问题而非理论缺
+口。(3)~\texttt{orderCost} 数的是物化的边界张量分量；常数因子的 FLOP 模型与切片权衡位于该
+下界之上（切片以内存换时间，不减少总功）。(4)~压缩下界按设计是 generic 的：结构化实例
+（stabilizer、真正低秩）可以也应当击穿它。(5)~零测度推论（$\Pr[\text{坍缩}]=0$）已陈述、尚
+未形式化。
+
+%% ===================================================================
+\section{结论}\label{sec:conclusion}
+
+TNCO 搜索如今有了一把绝对标尺：一个机器核验的代价下界——bramble 对偶证书管宽度、显式代价
+语义、以及把秩焊到代价上的 generic 无压缩定理——公理足迹恰为 \texttt{propext}、
+\texttt{Classical.choice}、\texttt{Quot.sound}。在校准算例上标尺是精确的：认证下界在 $54$
+处与显式 sweep 相遇，把一个启发式解变成一个可证最优的解。前方的路是范围而非信任：经子树
+Helly 到树序、到芯片晶格、再到启发式至今盲飞的不规则网络的 bramble 库。
+
+\bibliographystyle{plain}
+\bibliography{references}
+
+\end{document}
