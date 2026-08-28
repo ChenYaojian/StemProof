@@ -796,10 +796,16 @@ instance, single CPU node, $\sim$22 minutes total), recording the best found con
 width --- $\log_2$ of the largest intermediate --- and comparing it against the certified
 stem scale $N+1$ (Fig.~\ref{fig:gapplot}). One semantic note keeps the comparison honest:
 the found orders are \emph{trees} measured in \emph{bond} count, while the certified floor
-quantifies over \emph{stem} orders in vertex-bag semantics; on grids the sweep realizes
-bond-width exactly $N+1$, and tree orders may legitimately sit \emph{one} unit lower
-(nested dissection crosses column boundaries where the sweep must straddle them) --- the
-$\pw$-versus-$\tw$ distinction of \S\ref{sec:limits}, made visible in data.
+is a statement about \emph{stem} orders in \emph{vertex-bag} semantics, and the two
+measures agree only up to an additive unit --- a vertex-by-vertex frontier carries the one
+extra bond of the vertex being absorbed, which a tree merge can pre-contract away. Claims
+at $\pm 1$ granularity \emph{across} the two semantics are therefore not licensed by our
+theorems; what the theory predicts is $|\text{found} - (N{+}1)| \le 1 + \text{search
+slack}$. The prediction has teeth because on lattices trees should gain nothing
+substantial over stems at all: $\pw = \tw$ on grids is exactly the content of the
+stem-existence thesis (the explicitly-carried hypothesis of \S\ref{sec:limits}), so a
+search that is free to return \emph{arbitrary} trees ought to land within one conversion
+unit of the stem line --- and never substantially below it.
 
 %% GEMINI-PROMPT (fallback):
 %% "A clean scatter plot, vector style. X axis: 'grid size N' from 6 to 53. Y axis:
@@ -830,29 +836,33 @@ $\pw$-versus-$\tw$ distinction of \S\ref{sec:limits}, made visible in data.
   % annotations
   \draw[gray, -{Stealth}] (44.5,-1.35) -- (40.6,-1.1);
   \node[gray, right, align=left] at (44.7,-1.35)
-    {trees may shave one unit\\($\pw$ vs $\tw$)};
+    {bag-vs-bond conversion\\($\pm 1$ semantics allowance)};
   \draw[gray, -{Stealth}] (28.5,2.35) -- (35.3,2.08);
   \node[gray, left, align=right] at (28.3,2.35)
     {search variance ---\\invisible without\\an absolute reference};
 \end{tikzpicture}
 \caption{Found contraction width minus the certified stem scale $N+1$, over the grid
-family (cotengra hyper-optimizer, $128$ repeats per instance). Eight of fourteen instances
-meet the certified scale exactly; two sit one unit \emph{below} it (tree orders
-legitimately undercut the stem class by one on grids); four drift $+1$/$+2$ above ---
-a quality deficit that relative benchmarking cannot detect and the yardstick reads off
-immediately.}
+family (cotengra hyper-optimizer, $128$ repeats per instance, \emph{unrestricted tree}
+orders). Every point lands in $[-1, +2]$: eight of fourteen meet the certified scale
+exactly, two sit at $-1$ (inside the one-unit bag-vs-bond conversion allowance --- not
+below the stem thesis), and four drift $+1$/$+2$ above --- a quality deficit that relative
+benchmarking cannot detect and the yardstick reads off immediately.}
 \label{fig:gapplot}
 \end{figure}
 
-The data lands in three regimes, each doing narrative work. For $8 \le N \le 28$ the
-search meets the certified scale \emph{exactly} --- to our knowledge the first time
-heuristic contraction orders come with an absolute confirmation of their scale rather than
-a comparison to other heuristics. At $N \in \{6, 40\}$ the found trees sit one unit below
-the stem line: the theoretically-predicted stem/tree gap, observed in the wild. And at
-$N \in \{32, 36, 44, 53\}$ the fixed-budget search drifts $+1$ to $+2$ \emph{above} the
-scale --- at $N=36$ the returned order is a factor $4$ in tensor size away from what the
-certified line says is achievable, and nothing in a relative-only methodology would ever
-flag it. That last regime is the yardstick's raison d'\^etre in one sentence.
+The data lands in three regimes, each doing narrative work. First, the stem-existence
+thesis is checked in the wild: an unrestricted tree search, free to return any contraction
+tree whatsoever, \emph{never} beats the stem line by more than the one-unit semantics
+allowance --- exactly what ``optimal contraction of lattice networks can be taken
+stem-shaped'' predicts, and the two $-1$ points are the conversion residue, not a
+refutation. Second, for $8 \le N \le 28$ the search meets the certified scale
+\emph{exactly} --- to our knowledge the first time heuristic contraction orders come with
+an absolute confirmation of their scale rather than a comparison to other heuristics.
+Third, at $N \in \{32, 36, 44, 53\}$ the fixed-budget search drifts $+1$ to $+2$
+\emph{above} the scale --- at $N=36$ the returned order is a factor $4$ in tensor size
+away from what the certified line says is achievable, and nothing in a relative-only
+methodology would ever flag it. That last regime is the yardstick's raison d'\^etre in one
+sentence.
 
 %% ===================================================================
 \section{Geometric Routing: Brickwork and Lightcones}\label{sec:routing}

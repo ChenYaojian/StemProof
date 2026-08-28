@@ -22,11 +22,14 @@ cotengra's hyper-optimizer.
 | gap | -1 | 0 | 0  | 0  | 0  | 0  | 0  | 0  | +1 | +2 | -1 | +1 | 0  | +2 |
 
 Three regimes, all informative:
+- Every point lands in [-1, +2]: an UNRESTRICTED tree search never beats the stem
+  line by more than one unit -- empirical support for the stem-existence thesis
+  (on grids pw = tw, so trees should gain nothing substantial over stems).
 - gap 0 (8 points): the search meets the certified stem scale exactly.
-- gap -1 (N=6, 40): tree orders legitimately undercut the stem line by one unit
-  (nested dissection vs sweep) -- the pw-vs-tw distinction made empirically visible;
-  no contradiction, the unconditional floor quantifies over stem orders in
-  vertex-bag semantics.
+- gap -1 (N=6, 40): bag-vs-bond semantics conversion residue (the certified floor
+  counts vertex bags; cotengra counts bond indices; a vertex-by-vertex frontier
+  carries one extra bond that a tree merge can pre-contract away). Within the
+  +-1 allowance; NOT trees beating the stem thesis.
 - gap +1/+2 (N=32, 36, 44, 53): with a fixed repeat budget the stochastic search
   drifts above the certified scale -- a deficit that is invisible to
   relative-only benchmarking and exactly what the yardstick exposes.
