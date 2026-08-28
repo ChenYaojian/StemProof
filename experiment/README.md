@@ -7,8 +7,8 @@ cotengra's hyper-optimizer.
 
 ## Provenance
 
-- Server: umi (Slurm), partition `debug`, job 181890, 8 CPUs / 16 GB, ~22 min total.
-- Environment: `/home/cyj/anaconda3/envs/szq_tnc` (python 3.9), cotengra 0.7.1.
+- Server: Slurm HPC cluster (name withheld for anonymity), partition `debug`, job 181890, 8 CPUs / 16 GB, ~22 min total.
+- Environment: conda env `szq_tnc` (python 3.9), cotengra 0.7.1.
 - Command: `python grid_floor_experiment.py 6,8,10,12,16,20,24,28,32,36,40,44,48,53 128 8`
   (128 hyper-optimizer repeats per instance, minimize="size").
 - Instances: closed N x N grid tensor networks, all bond dimensions 2, built as raw
