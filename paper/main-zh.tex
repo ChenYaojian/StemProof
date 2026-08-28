@@ -584,6 +584,55 @@ regime 时空 grid，而非物理二维芯片的 $(2{+}1)$ 维晶格。证书的
 何内容依赖它。
 
 %% ===================================================================
+\section{实证演示：拿标尺量一次真实搜索}\label{sec:empirical}
+
+标尺只有被人拿去对着真实搜索量一次才有意思，所以我们量了。对一列直到基准尺度的 $N$，我们构
+造封闭的 $N\times N$ grid 张量网络（所有 bond 维数为 $2$），运行 cotengra 的
+hyper-optimizer~\cite{gray2021hyper}（v0.7.1，\texttt{minimize=size}，每实例 $128$ 次重
+复，单 CPU 节点，总计约 22 分钟），记录找到的最优收缩宽度——最大中间张量的 $\log_2$——并与
+认证 stem 尺度 $N+1$ 对比（图~\ref{fig:gapplot}）。一条语义说明保证对比诚实：找到的顺序是
+以 \emph{bond} 数计量的\emph{树}序，而认证下界量化在以顶点 bag 计量的 \emph{stem} 序上；在
+grid 上 sweep 恰好实现 bond 宽度 $N+1$，而树序可以合法地低\emph{一}个单位（嵌套二分在列边
+界处穿过，而 sweep 必须骑跨列中）——即 \S\ref{sec:limits} 的 $\pw$ 对 $\tw$ 之别，在数据中
+现形。
+
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[font=\scriptsize, xscale=0.145, yscale=0.62]
+  \draw[-{Stealth}] (4,-1.9) -- (4,2.9) node[above left] {间隙};
+  \draw (4,-1.9) -- (56,-1.9);
+  \foreach \g/\l in {-1/-1, 0/0, 1/+1, 2/+2} {
+    \draw (3.5,\g) -- (4,\g); \node[left] at (3.5,\g) {\l};
+  }
+  \foreach \n in {6,12,20,28,36,44,53} \node[below] at (\n,-1.9) {\n};
+  \node[below=9pt] at (30,-1.9) {grid 尺寸 $N$};
+  \draw[red!70!black, very thick] (4.5,0) -- (55.5,0);
+  \node[red!70!black, above] at (16,0.10) {认证 stem 尺度 $N{+}1$};
+  \foreach \n/\g in {6/-1, 8/0, 10/0, 12/0, 16/0, 20/0, 24/0, 28/0, 32/1,
+                     36/2, 40/-1, 44/1, 48/0, 53/2}
+    \fill[blue!70!black] (\n,\g) circle (2.4pt);
+  \draw[gray, -{Stealth}] (44.5,-1.35) -- (40.6,-1.1);
+  \node[gray, right, align=left] at (44.7,-1.35)
+    {树序可削掉一个单位\\（$\pw$ 对 $\tw$）};
+  \draw[gray, -{Stealth}] (28.5,2.35) -- (35.3,2.08);
+  \node[gray, left, align=right] at (28.3,2.35)
+    {搜索方差——\\没有绝对参照\\就不可见};
+\end{tikzpicture}
+\caption{找到的收缩宽度减认证 stem 尺度 $N+1$，遍历 grid 族（cotengra hyper-optimizer，每
+实例 $128$ 次重复）。十四个实例中八个精确命中认证尺度；两个低于它一个单位（在 grid 上树序
+可以合法地比 stem 类省一）；四个漂到 $+1$/$+2$ 之上——一种相对基准测试无法察觉、而标尺一眼
+读出的质量缺口。}
+\label{fig:gapplot}
+\end{figure}
+
+数据落在三个 regime，每个都在承担叙事工作。$8\le N\le 28$ 时搜索\emph{精确}命中认证尺度
+——据我们所知，这是启发式收缩顺序第一次获得对其尺度的绝对确认，而非与其他启发式的比较。
+$N\in\{6,40\}$ 处找到的树序低于 stem 线一个单位：理论预言的 stem/树间隙在野外被观测到。而
+$N\in\{32,36,44,53\}$ 处固定预算的搜索漂到尺度\emph{之上} $+1$ 到 $+2$——在 $N=36$ 处返回
+的顺序与认证线宣告可达的水平差了张量尺寸的 $4$ 倍，而只做相对评判的方法论永远不会标记它。
+最后这个 regime 用一句话就是标尺存在的理由。
+
+%% ===================================================================
 \section{几何路由：brickwork 与光锥}\label{sec:routing}
 
 \S\ref{sec:rigidity} 的刚性证书消耗一个跨割面匹配，怀疑者理应追问：真实硬件是否真能供给所

@@ -786,6 +786,75 @@ chip-lattice width floor is future work (\S\ref{sec:limits}), and nothing in thi
 depends on it.
 
 %% ===================================================================
+\section{Empirical Demonstration: Reading the Yardstick}\label{sec:empirical}
+
+The yardstick is only interesting if someone holds it against a real search, so we did.
+For each $N$ in a sweep up to the benchmark scale we built the closed $N\times N$ grid
+tensor network (all bond dimensions $2$) and ran cotengra's
+hyper-optimizer~\cite{gray2021hyper} (v0.7.1, \texttt{minimize=size}, $128$ repeats per
+instance, single CPU node, $\sim$22 minutes total), recording the best found contraction
+width --- $\log_2$ of the largest intermediate --- and comparing it against the certified
+stem scale $N+1$ (Fig.~\ref{fig:gapplot}). One semantic note keeps the comparison honest:
+the found orders are \emph{trees} measured in \emph{bond} count, while the certified floor
+quantifies over \emph{stem} orders in vertex-bag semantics; on grids the sweep realizes
+bond-width exactly $N+1$, and tree orders may legitimately sit \emph{one} unit lower
+(nested dissection crosses column boundaries where the sweep must straddle them) --- the
+$\pw$-versus-$\tw$ distinction of \S\ref{sec:limits}, made visible in data.
+
+%% GEMINI-PROMPT (fallback):
+%% "A clean scatter plot, vector style. X axis: 'grid size N' from 6 to 53. Y axis:
+%%  'found width minus certified stem scale (N+1)', integer ticks -1, 0, +1, +2. A thick
+%%  red horizontal line at y=0 labeled 'certified stem scale N+1 (Lean theorem)'. Blue dots
+%%  at: (6,-1),(8,0),(10,0),(12,0),(16,0),(20,0),(24,0),(28,0),(32,1),(36,2),(40,-1),
+%%  (44,1),(48,0),(53,2). Annotation near (40,-1): 'tree orders may shave one unit (pw vs
+%%  tw)'. Annotation near (36,2): 'search variance -- invisible without an absolute
+%%  reference'."
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[font=\scriptsize, xscale=0.145, yscale=0.62]
+  % axes
+  \draw[-{Stealth}] (4,-1.9) -- (4,2.9) node[above left] {gap};
+  \draw (4,-1.9) -- (56,-1.9);
+  \foreach \g/\l in {-1/-1, 0/0, 1/+1, 2/+2} {
+    \draw (3.5,\g) -- (4,\g); \node[left] at (3.5,\g) {\l};
+  }
+  \foreach \n in {6,12,20,28,36,44,53} \node[below] at (\n,-1.9) {\n};
+  \node[below=9pt] at (30,-1.9) {grid size $N$};
+  % certified line
+  \draw[red!70!black, very thick] (4.5,0) -- (55.5,0);
+  \node[red!70!black, above] at (16,0.10) {certified stem scale $N{+}1$};
+  % data
+  \foreach \n/\g in {6/-1, 8/0, 10/0, 12/0, 16/0, 20/0, 24/0, 28/0, 32/1,
+                     36/2, 40/-1, 44/1, 48/0, 53/2}
+    \fill[blue!70!black] (\n,\g) circle (2.4pt);
+  % annotations
+  \draw[gray, -{Stealth}] (44.5,-1.35) -- (40.6,-1.1);
+  \node[gray, right, align=left] at (44.7,-1.35)
+    {trees may shave one unit\\($\pw$ vs $\tw$)};
+  \draw[gray, -{Stealth}] (28.5,2.35) -- (35.3,2.08);
+  \node[gray, left, align=right] at (28.3,2.35)
+    {search variance ---\\invisible without\\an absolute reference};
+\end{tikzpicture}
+\caption{Found contraction width minus the certified stem scale $N+1$, over the grid
+family (cotengra hyper-optimizer, $128$ repeats per instance). Eight of fourteen instances
+meet the certified scale exactly; two sit one unit \emph{below} it (tree orders
+legitimately undercut the stem class by one on grids); four drift $+1$/$+2$ above ---
+a quality deficit that relative benchmarking cannot detect and the yardstick reads off
+immediately.}
+\label{fig:gapplot}
+\end{figure}
+
+The data lands in three regimes, each doing narrative work. For $8 \le N \le 28$ the
+search meets the certified scale \emph{exactly} --- to our knowledge the first time
+heuristic contraction orders come with an absolute confirmation of their scale rather than
+a comparison to other heuristics. At $N \in \{6, 40\}$ the found trees sit one unit below
+the stem line: the theoretically-predicted stem/tree gap, observed in the wild. And at
+$N \in \{32, 36, 44, 53\}$ the fixed-budget search drifts $+1$ to $+2$ \emph{above} the
+scale --- at $N=36$ the returned order is a factor $4$ in tensor size away from what the
+certified line says is achievable, and nothing in a relative-only methodology would ever
+flag it. That last regime is the yardstick's raison d'\^etre in one sentence.
+
+%% ===================================================================
 \section{Geometric Routing: Brickwork and Lightcones}\label{sec:routing}
 
 The rigidity certificate of \S\ref{sec:rigidity} consumes a cross-cut matching, and a
