@@ -1,0 +1,52 @@
+[
+ {
+  "N": 28,
+  "num_tensors": 784,
+  "found_width": 29.000000000000004,
+  "found_cost_log10": 12.147507614042507,
+  "certified_floor_bag": 29,
+  "max_repeats": 512,
+  "seconds": 67.86,
+  "kind": "grid"
+ },
+ {
+  "N": 32,
+  "num_tensors": 1024,
+  "found_width": 33.0,
+  "found_cost_log10": 13.478592684703454,
+  "certified_floor_bag": 33,
+  "max_repeats": 512,
+  "seconds": 142.78,
+  "kind": "grid"
+ },
+ {
+  "N": 36,
+  "num_tensors": 1296,
+  "found_width": 36.0,
+  "found_cost_log10": 17.034343945578073,
+  "certified_floor_bag": 37,
+  "max_repeats": 512,
+  "seconds": 357.02,
+  "kind": "grid"
+ },
+ {
+  "N": 44,
+  "num_tensors": 1936,
+  "found_width": 45.0,
+  "found_cost_log10": 17.385955988716347,
+  "certified_floor_bag": 45,
+  "max_repeats": 512,
+  "seconds": 296.84,
+  "kind": "grid"
+ },
+ {
+  "N": 53,
+  "num_tensors": 2809,
+  "found_width": 55.00000000000001,
+  "found_cost_log10": 24.26791604197401,
+  "certified_floor_bag": 54,
+  "max_repeats": 512,
+  "seconds": 2492.64,
+  "kind": "grid"
+ }
+]

@@ -1,0 +1,38 @@
+[
+ {
+  "instance": "2d_6x6_c16",
+  "num_tensors": 1032,
+  "found_width": 46.0,
+  "stem_time": 36,
+  "stem_space": 225,
+  "best_stem": 36,
+  "gap": 10.0,
+  "seconds": 87.43,
+  "max_repeats": 512,
+  "kind": "chip"
+ },
+ {
+  "instance": "2d_7x7_c8",
+  "num_tensors": 770,
+  "found_width": 59.00000000000001,
+  "stem_time": 49,
+  "stem_space": 129,
+  "best_stem": 49,
+  "gap": 10.000000000000007,
+  "seconds": 61.89,
+  "max_repeats": 512,
+  "kind": "chip"
+ },
+ {
+  "instance": "2d_7x7_c12",
+  "num_tensors": 1106,
+  "found_width": 65.0,
+  "stem_time": 49,
+  "stem_space": 193,
+  "best_stem": 49,
+  "gap": 16.0,
+  "seconds": 105.41,
+  "max_repeats": 512,
+  "kind": "chip"
+ }
+]

@@ -1,0 +1,12 @@
+[
+ {
+  "N": 36,
+  "num_tensors": 1296,
+  "found_width": 36.0,
+  "found_cost_log10": 16.61757838153475,
+  "certified_floor_bag": 37,
+  "max_repeats": 4096,
+  "seconds": 1553.05,
+  "kind": "grid"
+ }
+]

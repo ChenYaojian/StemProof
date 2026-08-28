@@ -1,0 +1,26 @@
+[
+ {
+  "instance": "2d_6x6_c16",
+  "num_tensors": 1032,
+  "found_width": 42.0,
+  "stem_time": 36,
+  "stem_space": 225,
+  "best_stem": 36,
+  "gap": 6.0,
+  "seconds": 655.77,
+  "max_repeats": 4096,
+  "kind": "chip"
+ },
+ {
+  "instance": "2d_7x7_c12",
+  "num_tensors": 1106,
+  "found_width": 59.00000000000001,
+  "stem_time": 49,
+  "stem_space": 193,
+  "best_stem": 49,
+  "gap": 10.000000000000007,
+  "seconds": 966.44,
+  "max_repeats": 4096,
+  "kind": "chip"
+ }
+]

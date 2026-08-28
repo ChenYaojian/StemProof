@@ -72,3 +72,42 @@ results_rqc_deep.json.
   2^17 ~ 1.3e5 times larger than the time-sweep stem.
 - Combined with Part 2: 25 deep-regime instances, zero cases of a found
   tree beating an exhibited stem.
+
+## Part 4: search-budget sensitivity (jobs 181893-181897, same env, ~75 min wall)
+
+`sensitivity_budget.py` reruns the instances that drifted above the certified /
+stem scale at the original 128-repeat budget, at 512 and 4096 repeats
+(five parallel debug jobs; see `run_sensitivity.sbatch` for the submitted
+command lines). Raw outputs: `results_sens_grid512.json`,
+`results_sens_grid4096_{36,53}.json`, `results_sens_chip512.json`,
+`results_sens_chip4096.json`.
+
+Grid family (gap = found - (N+1)):
+
+| N  | 128 | 512 | 4096 |
+|----|-----|-----|------|
+| 28 | 0   | 0   | -    |
+| 32 | +1  | 0   | -    |
+| 36 | +2  | -1  | -1   |
+| 44 | +1  | 0   | -    |
+| 53 | +2  | +1  | 0    |
+
+Every drift point returns to within the +-1 bag-vs-bond conversion allowance
+by 512 repeats; at 4096 repeats the N=53 search lands exactly on the certified
+scale 54, and no point ever crosses below the allowance. The certified line is
+the attractor of the search as budget grows: the 128-repeat drift was
+budget-limited search quality, not a property of the instances.
+
+2D ABCD chips (gap = found - time-sweep stem):
+
+| instance   | stem | 128 | 512 | 4096 |
+|------------|------|-----|-----|------|
+| 2d_6x6_c16 | 36   | +14 | +10 | +6   |
+| 2d_7x7_c8  | 49   | +15 | +10 | -    |
+| 2d_7x7_c12 | 49   | +17 | +16 | +10  |
+
+The chip deficit shrinks by roughly 4 width units per 8x budget increase --
+still 2^6..2^10 above the free time-sweep stem after a 32x budget. The
+qualitative finding ("on supremacy-class chips the searcher fails to find the
+stem") survives the budget objection; closing the remaining gap by brute
+budget would require orders of magnitude more search.
