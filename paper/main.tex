@@ -803,8 +803,9 @@ The yardstick is only interesting if someone holds it against a real search, so 
 For each $N$ in a sweep up to the benchmark scale we built the closed $N\times N$ grid
 tensor network (all bond dimensions $2$) and ran cotengra's
 hyper-optimizer~\cite{gray2021hyper} (v0.7.1, \texttt{minimize=size}, $128$ repeats per
-instance, single CPU node, $\sim$22 minutes total), recording the best found contraction
-width --- $\log_2$ of the largest intermediate --- and comparing it against the certified
+instance, single CPU node, $\sim$22 minutes total; a budget-sensitivity rerun of the
+drift instances at $512$ and $4096$ repeats is reported below), recording the best found
+contraction width --- $\log_2$ of the largest intermediate --- and comparing it against the certified
 stem scale $N+1$ (Fig.~\ref{fig:gapplot}). One semantic note keeps the comparison honest:
 the found orders are \emph{trees} measured in \emph{bond} count, while the certified floor
 is a statement about \emph{stem} orders in \emph{vertex-bag} semantics, and the two
@@ -875,9 +876,13 @@ deliberately modest; production settings run orders of magnitude more) drifts $+
 \emph{above} the scale --- at $N=36$ the returned order is a factor $4$ in tensor size
 away from what the certified line says is achievable, and nothing in a relative-only
 methodology would ever flag it. The drift measures search quality \emph{at this budget},
-not the hyper-optimizer's limit behavior; whether a larger budget closes it is exactly the
-question an absolute reference makes quantitative. That last regime is the yardstick's
-raison d'\^etre in one sentence.
+not the hyper-optimizer's limit behavior --- and the yardstick makes the follow-up
+question quantitative, so we asked it: rerunning the drift points at $512$ and $4096$
+repeats, every found width returns to within the conversion allowance of the certified
+line ($N \in \{32, 44\}$: gap $0$ at $512$; $N=36$: $-1$; $N=53$: $+1$ at $512$ and
+exactly $54 = N+1$ at $4096$), and no point ever crosses below it. The certified scale is
+the \emph{attractor} of the search as budget grows --- approached from above, never
+crossed. That last regime is the yardstick's raison d'\^etre in one sentence.
 
 \paragraph{From calibration grids to RQC architectures.}
 The grid family calibrates the yardstick; random-quantum-circuit \emph{architectures} are
@@ -932,12 +937,15 @@ Sycamore-class 2D architectures the free search returns trees $+2$ to $+17$ unit
 \emph{above} the trivial time-sweep stem, and the deficit \emph{grows with scale}: at
 $7{\times}7$ chips ($49$ qubits, the Sycamore-53 size class) the returned order
 materializes tensors $2^{17} \approx 10^{5}\times$ larger than the stem that theory hands
-over for free. At this search budget, on supremacy-class architectures the searcher does
-not merely fail to beat the stem --- it fails to \emph{find} it, and the deficit grows
-exactly where the instances matter most. Whether orders-of-magnitude larger budgets close
-the gap is an open (and, with the yardstick, now quantifiable) question; either way, a
-stem the theory hands over for free is a floor no search should fall below --- the
-strongest practical argument for certified stem-aware ordering that we know.
+over for free. On supremacy-class architectures the searcher does not merely fail to beat
+the stem --- it fails to \emph{find} it, and the deficit grows exactly where the instances
+matter most. Nor do larger budgets rescue it: at $512$ and $4096$ repeats ($4\times$ and
+$32\times$) the deficit shrinks only to $+10$ and then $+6$ on the $6{\times}6$ chip, and
+to $+16$/$+10$ on the $7{\times}7$, $12$-cycle instance --- still $2^{6}$--$2^{10}$ times
+the stem's tensor size after a $32\times$ budget increase, closing at roughly four width
+units per $8\times$ budget. A stem the theory hands over for free is a floor the search
+approaches only logarithmically in budget --- the strongest practical argument for
+certified stem-aware ordering that we know.
 
 %% ===================================================================
 \section{Geometric Routing: Brickwork and Lightcones}\label{sec:routing}
@@ -1014,9 +1022,11 @@ proper-subvariety statement. (5)~The measure-zero corollary ($\Pr[\text{collapse
 stated but not yet formalized. (6)~The identification of stem contraction orders with path
 decompositions (\S\ref{sec:background}), and of \lstinline|orderCost| with contraction
 work, is a modeling correspondence argued in prose; the formal order space \emph{is} the
-path decompositions. (7)~The empirical comparison (\S\ref{sec:empirical}) uses a fixed,
-modest search budget ($128$ repeats); the observed drift measures search quality at that
-budget, not the hyper-optimizer's limit behavior.
+path decompositions. (7)~The empirical comparison (\S\ref{sec:empirical}) reports fixed search budgets, with a
+sensitivity sweep at $128/512/4096$ repeats: the grid drifts close to within the
+conversion allowance as the budget grows, while the 2D-chip deficits persist ($+6$ to
+$+10$ at $4096$) --- observed gaps measure search quality at the stated budget, not limit
+behavior.
 
 %% ===================================================================
 \section{Conclusion}\label{sec:conclusion}
