@@ -878,9 +878,11 @@ widths, making the comparison ``free tree search vs.\ the stem the theory prescr
 
 \begin{table}[t]
 \caption{RQC architectures: best found tree width vs.\ the better of the two exhibited stem
-sweeps ($128$ repeats per instance). Negative shallow-regime entries measure the slack of
-our two \emph{canonical} witnesses (the optimal stem there is a spacetime staircase we do
-not enumerate), not trees beating the stem class.}
+sweeps ($128$ repeats per instance). The stem thesis is a \emph{deep-regime} claim --- its
+formal precondition is that the entanglement lightcone spans all qubits
+(\lstinline|routedBonds| $= \min(n, b\cdot d)$ saturating at $n$, \S\ref{sec:routing});
+shallow rows lie \emph{outside that domain} and are shown only to trace where the regime
+begins.}
 \label{tab:rqc}
 \centering\small
 \begin{tabular}{llrr}
@@ -889,24 +891,36 @@ family & instances & stem & found $-$ stem \\
 \hline
 1D chain, deep ($L{=}2n$) & $n = 8..16$ & $n$ & $0,\,0,\,0$ \\
                           & $n = 20, 24, 28$ & $n$ & $+2,\,+2,\,+2$ \\
-1D chain, $n{=}24$, depth $L$ & $L = 6..22$ (shallow) & $\sim L{+}1$ & $-2$ (witness slack) \\
+1D chain, very deep ($L{=}3n$) & $n = 16..28$ & $n$ & $0,\,+2,\,+4,\,+4$ \\
+1D chain, $n{=}24$, depth $L$ & $L = 6..22$ (below threshold) & $\sim L{+}1$ & $-2$ (out of domain) \\
                           & $L = 26..46$ (deep) & $24$ & $0,\,+1,\,+2,\,+4$ \\
-2D chip, ABCD & $16..36$ qb, $8..12$ cyc. & $n$ & $+2 \;..\; +9$ \\
+2D chip, ABCD & $16..49$ qb, $8..20$ cyc. & $n$ & $+2 \;..\; +17$ \\
 \hline
 \end{tabular}
 \end{table}
 
-Three observations. First, \textbf{no found tree beats an exhibited stem anywhere in the
-deep regime}, across all twenty instances --- the stem thesis, checked on genuine RQC
-graphs. Second, the $n{=}24$ depth sweep traces the $\min(n,\text{spatial cut})$ transition
-cleanly, with the crossover exactly where the space sweep overtakes the time sweep
-($L \approx 26$). Third --- the sharpest finding --- on the Sycamore-class 2D
-architectures the free search returns trees $+2$ to $+9$ units \emph{above} the trivial
-time-sweep stem: at $6{\times}6$ chips with $12$ cycles the returned order materializes
-tensors $2^{9} \approx 500\times$ larger than the stem that theory hands over for free.
-On supremacy-class architectures the searcher does not merely fail to beat the stem ---
-it fails to \emph{find} it, which is the strongest practical argument for certified
-stem-aware ordering that we know.
+Three observations. First, \textbf{across all twenty-five deep-regime instances no found
+tree beats an exhibited stem} --- the stem thesis, checked on genuine RQC graphs, exactly
+on its stated domain. The domain matters physically and formally: below threshold the
+entanglement lightcone has not yet connected all qubits, the cut is governed by the
+lightcone width rather than by $n$, and neither the floor nor the thesis is being tested
+--- this is Napp's simulable phase~\cite{napp2022efficient}, and its boundary is the
+machine-checked saturation condition of \S\ref{sec:routing} (\lstinline|bond_causal|: the
+$i$-th cross-cut pair is reachable iff $i < d$). The shallow entries at $-2$ sit outside
+the domain and, secondarily, measure the slack of our two canonical witnesses there.
+Second, the $n{=}24$ depth sweep traces the entry into the deep regime cleanly: the
+crossover sits exactly where the space sweep overtakes the time sweep
+($L \approx 26 \approx n$), i.e.\ where the lightcone first spans the chain; and once
+saturated the stem scale is depth-independent --- doubling $L{=}2n$ to $3n$ leaves the
+stem at $n$ while the search drifts further. Third --- the sharpest finding --- on the
+Sycamore-class 2D architectures the free search returns trees $+2$ to $+17$ units
+\emph{above} the trivial time-sweep stem, and the deficit \emph{grows with scale}: at
+$7{\times}7$ chips ($49$ qubits, the Sycamore-53 size class) the returned order
+materializes tensors $2^{17} \approx 10^{5}\times$ larger than the stem that theory hands
+over for free. On supremacy-class architectures the searcher does not merely fail to beat
+the stem --- it fails to \emph{find} it, and the failure worsens exactly where the
+instances matter most; that is the strongest practical argument for certified stem-aware
+ordering that we know.
 
 %% ===================================================================
 \section{Geometric Routing: Brickwork and Lightcones}\label{sec:routing}

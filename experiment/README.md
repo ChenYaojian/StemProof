@@ -47,9 +47,28 @@ sweep) exactly, so the comparison is "free tree search vs the stem theory
 prescribes". Raw output: results_rqc.json.
 
 - 1D deep: found - stem in {0,0,0,+2,+2,+2} -- search meets or trails the stem.
-- 1D depth sweep (n=24): tracks min(n, spatial cut); crossover at L~26; shallow
-  entries at -2 measure the slack of the two canonical witnesses (optimal
-  shallow stem is a spacetime staircase we do not enumerate).
+- 1D depth sweep (n=24): tracks min(n, spatial cut); crossover at L~26 ~ n,
+  i.e. where the entanglement lightcone first spans the chain. Shallow entries
+  (L < n) are OUTSIDE the stem-thesis domain -- below threshold the lightcone
+  has not connected all qubits (Napp's simulable phase; formal boundary =
+  the machine-checked saturation condition routedBonds = min(n, b*d) /
+  bond_causal). They are kept only to trace where the deep regime begins.
 - 2D ABCD chips (16-36 qubits): found EXCEEDS the trivial time-sweep stem by
   +2..+9 units (up to 2^9 ~ 500x tensor size at 6x6, 12 cycles): on
   supremacy-class architectures the searcher fails to FIND the stem.
+
+## Part 3: deep-regime extension (job 181892, same env, ~15 min)
+
+`rqc_deep_batch.py` (reuses the Part-2 generators): 1D chains at L=3n
+(n=16..28) and deeper/larger 2D ABCD chips (16 cycles, 20 cycles, and
+7x7 = 49 qubits -- the Sycamore-53 size class). Raw output:
+results_rqc_deep.json.
+
+- 1D at L=3n: gaps {0,+2,+4,+4}; the stem scale stays at n (depth-
+  independent once the lightcone saturates) while search drifts further.
+- 2D deep: 4x4 c16/c20 -> +2; 5x5 c16 -> +7; 6x6 c16 -> +14;
+  7x7 c8 -> +15; 7x7 c12 -> +17 (found 66 vs stem 49): the deficit GROWS
+  with scale -- at 49 qubits the searched order materializes tensors
+  2^17 ~ 1.3e5 times larger than the time-sweep stem.
+- Combined with Part 2: 25 deep-regime instances, zero cases of a found
+  tree beating an exhibited stem.
