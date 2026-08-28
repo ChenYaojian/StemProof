@@ -864,6 +864,50 @@ away from what the certified line says is achievable, and nothing in a relative-
 methodology would ever flag it. That last regime is the yardstick's raison d'\^etre in one
 sentence.
 
+\paragraph{From calibration grids to RQC architectures.}
+The grid family calibrates the yardstick; random-quantum-circuit \emph{architectures} are
+where the stem thesis must actually live, so we ran the same protocol on gate-level
+spacetime networks of RQC families (single closed amplitude, one rank-$4$ tensor per
+two-qubit gate): 1D brickwork chains in the deep regime ($L = 2n$ layers), a depth
+transition at fixed $n=24$, and 2D chips with the Sycamore-style ABCD coupler
+pattern~\cite{arute2019quantum}. Contraction width depends only on the network graph, so
+these are exactly the graphs of random circuits; for each instance we also \emph{exhibit}
+two genuine stem orders --- the time sweep and the space sweep --- and compute their exact
+widths, making the comparison ``free tree search vs.\ the stem the theory prescribes''
+(Table~\ref{tab:rqc}).
+
+\begin{table}[t]
+\caption{RQC architectures: best found tree width vs.\ the better of the two exhibited stem
+sweeps ($128$ repeats per instance). Negative shallow-regime entries measure the slack of
+our two \emph{canonical} witnesses (the optimal stem there is a spacetime staircase we do
+not enumerate), not trees beating the stem class.}
+\label{tab:rqc}
+\centering\small
+\begin{tabular}{llrr}
+\hline
+family & instances & stem & found $-$ stem \\
+\hline
+1D chain, deep ($L{=}2n$) & $n = 8..16$ & $n$ & $0,\,0,\,0$ \\
+                          & $n = 20, 24, 28$ & $n$ & $+2,\,+2,\,+2$ \\
+1D chain, $n{=}24$, depth $L$ & $L = 6..22$ (shallow) & $\sim L{+}1$ & $-2$ (witness slack) \\
+                          & $L = 26..46$ (deep) & $24$ & $0,\,+1,\,+2,\,+4$ \\
+2D chip, ABCD & $16..36$ qb, $8..12$ cyc. & $n$ & $+2 \;..\; +9$ \\
+\hline
+\end{tabular}
+\end{table}
+
+Three observations. First, \textbf{no found tree beats an exhibited stem anywhere in the
+deep regime}, across all twenty instances --- the stem thesis, checked on genuine RQC
+graphs. Second, the $n{=}24$ depth sweep traces the $\min(n,\text{spatial cut})$ transition
+cleanly, with the crossover exactly where the space sweep overtakes the time sweep
+($L \approx 26$). Third --- the sharpest finding --- on the Sycamore-class 2D
+architectures the free search returns trees $+2$ to $+9$ units \emph{above} the trivial
+time-sweep stem: at $6{\times}6$ chips with $12$ cycles the returned order materializes
+tensors $2^{9} \approx 500\times$ larger than the stem that theory hands over for free.
+On supremacy-class architectures the searcher does not merely fail to beat the stem ---
+it fails to \emph{find} it, which is the strongest practical argument for certified
+stem-aware ordering that we know.
+
 %% ===================================================================
 \section{Geometric Routing: Brickwork and Lightcones}\label{sec:routing}
 

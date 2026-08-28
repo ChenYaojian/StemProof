@@ -1,0 +1,202 @@
+[
+ {
+  "instance": "1d_n8_L16",
+  "num_tensors": 72,
+  "found_width": 8.0,
+  "stem_time": 8,
+  "stem_space": 17,
+  "best_stem": 8,
+  "gap": 0.0,
+  "seconds": 2.49
+ },
+ {
+  "instance": "1d_n12_L24",
+  "num_tensors": 156,
+  "found_width": 12.0,
+  "stem_time": 12,
+  "stem_space": 25,
+  "best_stem": 12,
+  "gap": 0.0,
+  "seconds": 3.31
+ },
+ {
+  "instance": "1d_n16_L32",
+  "num_tensors": 272,
+  "found_width": 16.0,
+  "stem_time": 16,
+  "stem_space": 33,
+  "best_stem": 16,
+  "gap": 0.0,
+  "seconds": 4.23
+ },
+ {
+  "instance": "1d_n20_L40",
+  "num_tensors": 420,
+  "found_width": 22.0,
+  "stem_time": 20,
+  "stem_space": 41,
+  "best_stem": 20,
+  "gap": 2.0,
+  "seconds": 11.59
+ },
+ {
+  "instance": "1d_n24_L48",
+  "num_tensors": 600,
+  "found_width": 26.0,
+  "stem_time": 24,
+  "stem_space": 49,
+  "best_stem": 24,
+  "gap": 2.0,
+  "seconds": 13.88
+ },
+ {
+  "instance": "1d_n28_L56",
+  "num_tensors": 812,
+  "found_width": 30.0,
+  "stem_time": 28,
+  "stem_space": 57,
+  "best_stem": 28,
+  "gap": 2.0,
+  "seconds": 19.64
+ },
+ {
+  "instance": "1d_n24_L6",
+  "num_tensors": 117,
+  "found_width": 5.0,
+  "stem_time": 24,
+  "stem_space": 7,
+  "best_stem": 7,
+  "gap": -2.0,
+  "seconds": 1.94
+ },
+ {
+  "instance": "1d_n24_L10",
+  "num_tensors": 163,
+  "found_width": 9.0,
+  "stem_time": 24,
+  "stem_space": 11,
+  "best_stem": 11,
+  "gap": -2.0,
+  "seconds": 2.87
+ },
+ {
+  "instance": "1d_n24_L14",
+  "num_tensors": 209,
+  "found_width": 13.0,
+  "stem_time": 24,
+  "stem_space": 15,
+  "best_stem": 15,
+  "gap": -2.0,
+  "seconds": 4.91
+ },
+ {
+  "instance": "1d_n24_L18",
+  "num_tensors": 255,
+  "found_width": 17.0,
+  "stem_time": 24,
+  "stem_space": 19,
+  "best_stem": 19,
+  "gap": -2.0,
+  "seconds": 3.94
+ },
+ {
+  "instance": "1d_n24_L22",
+  "num_tensors": 301,
+  "found_width": 21.0,
+  "stem_time": 24,
+  "stem_space": 23,
+  "best_stem": 23,
+  "gap": -2.0,
+  "seconds": 8.48
+ },
+ {
+  "instance": "1d_n24_L26",
+  "num_tensors": 347,
+  "found_width": 24.0,
+  "stem_time": 24,
+  "stem_space": 27,
+  "best_stem": 24,
+  "gap": 0.0,
+  "seconds": 7.54
+ },
+ {
+  "instance": "1d_n24_L30",
+  "num_tensors": 393,
+  "found_width": 25.0,
+  "stem_time": 24,
+  "stem_space": 31,
+  "best_stem": 24,
+  "gap": 1.0,
+  "seconds": 21.38
+ },
+ {
+  "instance": "1d_n24_L38",
+  "num_tensors": 485,
+  "found_width": 26.0,
+  "stem_time": 24,
+  "stem_space": 39,
+  "best_stem": 24,
+  "gap": 2.0,
+  "seconds": 13.41
+ },
+ {
+  "instance": "1d_n24_L46",
+  "num_tensors": 577,
+  "found_width": 28.0,
+  "stem_time": 24,
+  "stem_space": 47,
+  "best_stem": 24,
+  "gap": 4.0,
+  "seconds": 15.44
+ },
+ {
+  "instance": "2d_4x4_c8",
+  "num_tensors": 224,
+  "found_width": 18.0,
+  "stem_time": 16,
+  "stem_space": 81,
+  "best_stem": 16,
+  "gap": 2.0,
+  "seconds": 5.84
+ },
+ {
+  "instance": "2d_5x5_c8",
+  "num_tensors": 370,
+  "found_width": 31.000000000000004,
+  "stem_time": 25,
+  "stem_space": 97,
+  "best_stem": 25,
+  "gap": 6.0000000000000036,
+  "seconds": 22.31
+ },
+ {
+  "instance": "2d_6x6_c8",
+  "num_tensors": 552,
+  "found_width": 42.0,
+  "stem_time": 36,
+  "stem_space": 113,
+  "best_stem": 36,
+  "gap": 6.0,
+  "seconds": 52.74
+ },
+ {
+  "instance": "2d_5x5_c12",
+  "num_tensors": 530,
+  "found_width": 31.000000000000004,
+  "stem_time": 25,
+  "stem_space": 145,
+  "best_stem": 25,
+  "gap": 6.0000000000000036,
+  "seconds": 38.55
+ },
+ {
+  "instance": "2d_6x6_c12",
+  "num_tensors": 792,
+  "found_width": 45.0,
+  "stem_time": 36,
+  "stem_space": 169,
+  "best_stem": 36,
+  "gap": 9.0,
+  "seconds": 26.44
+ }
+]

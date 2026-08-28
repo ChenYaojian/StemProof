@@ -36,3 +36,20 @@ Three regimes, all informative:
 
 `results_6_53.json` is the raw output; the paper figure is generated from it
 (gap plot in `paper/main.tex`, section "Empirical Demonstration").
+
+## Part 2: RQC architectures (job 181891, same env, ~6 min)
+
+`rqc_stem_experiment.py` builds gate-level spacetime TNs of RQC families
+(single closed amplitude, rank-4 gate tensors; width depends only on the graph):
+1D brickwork chains (deep, L=2n), a depth transition at n=24, and 2D ABCD-pattern
+chips. Per instance it also simulates two genuine stem orders (time sweep, space
+sweep) exactly, so the comparison is "free tree search vs the stem theory
+prescribes". Raw output: results_rqc.json.
+
+- 1D deep: found - stem in {0,0,0,+2,+2,+2} -- search meets or trails the stem.
+- 1D depth sweep (n=24): tracks min(n, spatial cut); crossover at L~26; shallow
+  entries at -2 measure the slack of the two canonical witnesses (optimal
+  shallow stem is a spacetime staircase we do not enumerate).
+- 2D ABCD chips (16-36 qubits): found EXCEEDS the trivial time-sweep stem by
+  +2..+9 units (up to 2^9 ~ 500x tensor size at 6x6, 12 cycles): on
+  supremacy-class architectures the searcher fails to FIND the stem.
