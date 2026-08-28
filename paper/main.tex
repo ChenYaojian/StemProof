@@ -35,7 +35,7 @@
 \newcommand{\cc}{\mathrm{cc}}
 \newcommand{\pw}{\mathrm{pw}}
 \newcommand{\tw}{\mathrm{tw}}
-\newcommand{\sys}{\textsc{FieldStemProof}}  % TODO: anonymize artifact name if identifying
+\newcommand{\sys}{\textsc{StemFloor}}  % anonymized artifact name; restore public name at camera-ready
 
 \begin{document}
 
@@ -1037,8 +1037,39 @@ heuristics currently fly blind.
 
 \appendix
 \section{Artifact}\label{app:artifact}
-%% Anonymous artifact link (Zenodo, anonymized) with: source, lake build instructions,
-%% and a #print axioms check script for every theorem cited in the paper.
-%% TODO: prepare anonymized archive before submission.
+
+The artifact is an anonymized archive (link provided through the submission
+site) containing the full Lean development (\sys{}; name anonymized for review)
+and the empirical pipeline.
+%% TODO before submission: upload the anonymized archive and insert the link.
+
+\paragraph{Lean development.} 17 modules, $\sim$2{,}700 lines, built with
+\texttt{lake build} against Lean~4 and Mathlib, both pinned at v4.30.0 by the
+toolchain file and \texttt{lake-manifest.json}. The tree contains no
+\texttt{sorry} and no \texttt{axiom} declaration; a check script runs
+\texttt{\#print axioms} on every theorem cited in this paper and asserts that
+the output is exactly \texttt{[propext, Classical.choice, Quot.sound]}.
+
+\paragraph{Paper-to-artifact map.} \S\ref{sec:bramble}: touching-bramble bound
+(\lstinline|pathwidth_ge_order_of_touching|, module \texttt{Bramble}) and
+unconditional floor (\lstinline|grid_pathwidth_lower_unconditional|,
+\texttt{GridConn}). \S\ref{sec:exact}: exact floor
+(\lstinline|grid_pathwidth_exact|, \texttt{GridExact}). \S\ref{sec:model}:
+model optimum and cost floor (\lstinline|gridModel_cc_eq|,
+\lstinline|gridModel_cost_floor|, \texttt{GridModel}). \S\ref{sec:rigidity}:
+rigidity, no-compression, and Kronecker routing
+(\lstinline|contraction_rigidity|, \lstinline|ContractionRigid.no_compression|,
+\texttt{Rigidity}; \lstinline|det_bondProd_ne_zero|, \texttt{Matching}).
+\S\ref{sec:routing}: gate-counting cap and lightcone walks
+(\lstinline|routed_card_le|, \texttt{Brickwork}; \lstinline|bond_causal|,
+\texttt{Causal}). \S\ref{sec:endtoend}: the end-to-end certificate and its
+conjuncts (\lstinline|sycamore53_lower_bound| and companions,
+\texttt{Sycamore}).
+
+\paragraph{Empirical pipeline.} The cotengra driver scripts, Slurm batch files,
+and raw JSON results behind \S\ref{sec:empirical} --- the grid sweep, the RQC
+architectures, and the search-budget sensitivity runs --- with software and
+hardware provenance recorded in the experiment README (cluster name withheld
+for double-blind review).
 
 \end{document}

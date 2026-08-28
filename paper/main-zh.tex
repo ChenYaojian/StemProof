@@ -46,21 +46,18 @@
 张量网络收缩的代价由收缩顺序决定，而寻找最优顺序（TNCO）是 NP-hard 的。因此实践依赖启发
 式搜索——hyper-optimized 收缩树、模拟退火、社区检测——其结果只能被\emph{相对地}评判：顺
 序 $A$ 胜过顺序 $B$，但两者距离真实最优还有多远无人知晓，因为不存在可信的\emph{绝对}标尺。
-我们补上这把标尺：对每一个 \emph{sweep 型（stem）}收缩顺序的代价给出机器核验的下界——无
-条件地——并在唯一一条显式陈述的已发表假设（晶格上 $\pw=\Theta(\tw)$）下推广到任意收缩树；
+我们补上这把标尺：对收缩代价给出机器核验的下界——在 \emph{sweep 型（stem）}序类上无条件
+成立，并在唯一一条显式陈述的已发表假设（晶格上 $\pw=\Theta(\tw)$）下推广到任意收缩树——
 全部在 Lean~4 + Mathlib 中形式化（约 2{,}700 行，无 \texttt{sorry}，\textbf{零自定义公
-理}）。一个可信的代价下界需要两个相互独立的部件，我们对两者都给出认证。其一是\emph{宽度}下
-界：bramble 是 pathwidth 的组合对偶证书，我们经由一个初等的区间 Helly 论证把 bramble 界完全
-自证——这是 Lean 中首个 pathwidth 下界理论。其二，宽度必须真正翻译成代价：中间张量的低秩结
-构可能击穿宽度这个代理量（decision diagram 类方法利用的正是这一点）。我们的
-\emph{Contraction Rigidity} 定理从结构上封死这个漏洞：任何\emph{有能力}在割面达到满秩的网
-络，对真代数子簇之外的一切张量取值都满秩——不含概率，且该"能力"前件经 Kronecker 路由约化为
-纯组合的跨割面匹配。我们把框架实例化在晶格族的忠实模型上——这是\emph{校准}类：其真实最优独
-立可知，因此标尺本身的松紧是可检验的——模型的序空间取遍电路时空晶格的真实路径分解，宽度全
-部派生、绝无设定。在 Sycamore-53 基准尺度上，证书是\emph{零间隙}的：每个 stem 序宽度
-$\ge 54$、总代价 $\ge 2^{54}$，我们的显式 sweep 达到宽度 $\le 54$——认证下界与找到的解
-\emph{相遇}，即该 sweep 携带一份 stem 类内最优性的机器核验证明——且 generic 取值下没有任何
-内维低于 $2^{53}$ 的低秩因子分解能穿过割面。
+理}）。两个部件都经过认证。其一是\emph{宽度}下界：bramble 是 pathwidth 的组合对偶证书，经
+一个初等的区间 Helly 论证完全自证——这是 Lean 中首个 pathwidth 下界理论。其二是宽度到代价
+的联结：我们的 \emph{Contraction Rigidity} 定理证明，任何\emph{有能力}在割面达到满秩的网
+络，对真代数子簇之外的一切门参数都满秩——不含概率，且"能力"前件经 Kronecker 路由约化为组
+合的跨割面匹配——并且一个显式见证族在基准割面上实现了这种能力，对 generic 门取值封死低秩
+（decision diagram）漏洞。在校准算例——53 线链的 $53\times53$ 深窗口时空 grid，对应
+Sycamore-53 的\emph{割面尺度}——上，证书是\emph{零间隙}的：每个 stem 序宽度 $\ge 54$、总
+代价 $\ge 2^{54}$，而我们的显式 sweep 达到宽度 $54$——一个携带 stem 类内最优性机器核验证
+明的找到的解。
 \end{abstract}
 
 %% ===================================================================
@@ -156,9 +153,9 @@ state-vector 类模拟器与 stem 型 supremacy 策略实际占据的类~\cite{h
   \item \textbf{TNCO 的绝对标尺（\S\ref{sec:framework}、\S\ref{sec:model}）。}一个形式化
     的代价/宽度模型，其中"没有任何收缩顺序低于界 $L$"是一条量化在\emph{真实}序空间上的定理
     ——序空间即网络图的真实路径分解，宽度全部派生、绝无设定——并配有显式代价对象：
-    \texttt{orderCost} 对物化的边界张量求和，认证下界是关于\emph{代价}的陈述
+    \texttt{orderCost} 对物化的边界张量求和，下界以\emph{代价}陈述读出
     （\texttt{gridModel\_cost\_floor}：$N\times N$ 晶格的每个序 $o$ 满足
-    $2^{N+1}\le\mathrm{cost}(o)$），而不只是关于宽度的陈述。
+    $2^{N+1}\le\mathrm{cost}(o)$——宽度下界的直接推论，显式化以使标尺为代价定价）。
   \item \textbf{Lean 中的 bramble 证书（\S\ref{sec:bramble}）。}bramble 是宽度的组合
     \emph{对偶证书}，扮演 LP 对偶之于分支定界下界的角色：无论 bramble 是如何找到的——手
     工、启发式搜索——被核验的定理都把它变成绝对下界。stem（sweep）序恰好是路径分解，其对偶
@@ -175,11 +172,14 @@ state-vector 类模拟器与 stem 型 supremacy 策略实际占据的类~\cite{h
     （\texttt{ContractionRigid.no\_compression}）：generic 意义下，割面 flattening 不存在
     内维低于 $2^k$ 的因子分解——没有 MPS 式的 bond、没有任何秩揭示压缩能击穿下界
     （decision diagram 漏洞），除非落在一个零测度的实例集合上。
-  \item \textbf{零间隙的认证基准算例（\S\ref{sec:endtoend}）。}在 Sycamore-53 尺度上，一条
-    机器核验定理把最优值精确钉死：$\cc=54$（\texttt{sycamore53\_cc\_exact}），每个 stem 序
-    总代价 $\ge 2^{54}$（\texttt{sycamore53\_cost\_floor}），generic 门取值下割面被挡住内
-    维 $<2^{53}$ 的因子分解（\texttt{sycamore53\_bond\_floor}），而显式 sweep 达到下界——
-    一个携带机器核验\emph{最优性证明}的找到的解，其 \texttt{\#print axioms} 只报告标准公理。
+  \item \textbf{零间隙的认证校准算例（\S\ref{sec:endtoend}）。}在 $53\times53$ 深窗口时空
+    grid——Sycamore-53 \emph{割面尺度}上的校准算例；\S\ref{sec:endtoend} 精确说明它与
+    $(53,20)$ 基准参数的关系——上，一条机器核验定理把最优值精确钉死：$\cc=54$
+    （\texttt{sycamore53\_cc\_exact}），每个 stem 序总代价 $\ge 2^{54}$
+    （\texttt{sycamore53\_cost\_floor}），一个由跨割面匹配构造的见证族在 $53$ 比特割面上
+    收缩刚性——对它，generic 意义下没有内维 $<2^{53}$ 的因子分解穿过割面
+    （\texttt{sycamore53\_bond\_floor}）——而显式 sweep 达到下界：一个携带机器核验
+    \emph{最优性证明}的找到的解，其 \texttt{\#print axioms} 只报告标准公理。
   \item \textbf{几何路由（\S\ref{sec:routing}）。}匹配前件在真实硬件图上被实现：$b\cdot d$
     深度封顶是一条门计数定理，bond 可达性是 1D 链与 2D 芯片上的显式光锥 walk。
 \end{itemize}
@@ -254,8 +254,9 @@ $\lfloor\sqrt{n}\rfloor\cdot d$（空间向），故可达的宽度尺度为
 $\mathrm{sweepCut}(n,d)=\min(n,\lfloor\sqrt{n}\rfloor d)$；在 Sycamore-53 参数
 $(n,d)=(53,20)$~\cite{arute2019quantum} 下这个值是 $53$，而民间流传的代价估计
 $4\cdot 2^{53}\cdot 150\approx 10^{18}$ 是纯算术，我们的开发同样将其认证
-（\texttt{CorollaryD}）。全文中"Sycamore-53 尺度"指这组参数；我们实例化的晶格是线链的深
-regime 时空 grid（保真度范围见 \S\ref{sec:endtoend}）。
+（\texttt{CorollaryD}）。全文中"Sycamore-53 尺度"指这组参数固定的割面值；我们实例化的晶
+格是线链的 $53\times53$ \emph{深窗口}时空 grid，其深度窗口（$53$ 层）超过基准深度
+（$20$）——\S\ref{sec:endtoend} 说明每个认证合取项谈论的是哪个对象。
 
 \subsection{Lean 4 与 Mathlib}
 开发构建于 Lean~4 与 Mathlib（均钉在 v4.30.0），使用 \texttt{SimpleGraph} 盒积表示晶格、
@@ -554,8 +555,8 @@ theorem gridModel_cost_floor (N : ℕ) (hN : 2 ≤ N)
 \section{案例研究：零间隙的认证基准算例}\label{sec:endtoend}
 
 为什么在晶格上校准？恰恰因为晶格\emph{不是}困难情形：其宽度是教科书已知的，所以它是唯一能
-拿标尺读数与独立真值对表的实例族。而我们的标尺读数分毫不差。把模型实例化在 Sycamore-53 尺度
-（$N=53$；53 线链的深 regime 时空 grid），一条定理合取整个证书：
+拿标尺读数与独立真值对表的实例族。而我们的标尺读数分毫不差。把模型实例化在 Sycamore-53 割
+面尺度（$N=53$；53 线链的深窗口时空 grid），一条定理合取整个证书：
 
 \begin{lstlisting}
 theorem sycamore53_lower_bound :
@@ -573,15 +574,22 @@ theorem sycamore53_lower_bound :
 作为证书来读，四个合取说的是：(i)~民间 $10^{18}$ 估计背后的扫描割面算术是精确的；(ii)~真实
 时空 grid 的\emph{全体} stem 序上的最优值是 $54$——\S\ref{sec:exact} 的下界与
 \S\ref{sec:model} 的 sweep 相遇，故该 sweep 是一个携带机器核验\emph{最优性证明}的找到的解；
-(iii)~每个序的总代价至少 $2^{54}$；(iv)~$53$ 比特割面收缩刚性，故由
-\texttt{no\_compression}，generic 意义下没有内维低于 $2^{53}$ 的因子分解能穿过它
-（\texttt{sycamore53\_bond\_floor}）。对该定理执行 \texttt{\#print axioms} 报告
-\texttt{[propext, Classical.choice, Quot.sound]}。
+(iii)~每个序的总代价至少 $2^{54}$；(iv)~\emph{存在}一个由跨割面匹配构造的见证张量族在
+$53$ 比特割面上收缩刚性——对该族，\texttt{no\_compression} 给出 generic 意义下没有内维低
+于 $2^{53}$ 的因子分解穿过割面（\texttt{sycamore53\_bond\_floor}）。合取项 (iv) 是关于割
+面纠缠容量的存在性陈述，不是对任何具体基准电路的秩断言。对该定理执行
+\texttt{\#print axioms} 报告 \texttt{[propext, Classical.choice, Quot.sound]}。
 
-保真度范围，直说：``Sycamore-53 尺度''固定参数 $(53,20)$ 与割面值；实例化的晶格是线链的深
-regime 时空 grid，而非物理二维芯片的 $(2{+}1)$ 维晶格。证书的匹配一侧已经覆盖二维芯片
-（\S\ref{sec:routing}）；芯片晶格的宽度下界是后续工作（\S\ref{sec:limits}），且本节没有任
-何内容依赖它。
+保真度范围，直说：四个合取项谈论的并非同一个物理对象。合取项 (i)--(ii) 是基准参数
+$(53,20)$ 处的算术，其割面值 $53$ 来自\emph{二维芯片}几何（每层
+$\lfloor\sqrt{n}\rfloor$ 个跨割面门）。合取项 (iii) 认证的是\emph{线链}的 $53\times53$
+时空 grid——一个 $53$ 层的深窗口，超过基准深度 $20$；在深度 $20$ 处线链的时空 grid 是
+$53\times20$，其 stem 尺度由深度支配（$\approx 21$），且按 \S\ref{sec:routing} 的饱和判
+据位于深 regime 阈值之下。因此 (iii) 认证的是 Sycamore-53 割面尺度上的深 regime
+\emph{校准}算例——不是 $(53,20)$ 的线链，也不是物理芯片的 $(2{+}1)$ 维晶格。合取项 (iv)
+是 \emph{generic} 的：具体的 Sycamore 电路从离散集合中取单比特门，真子簇陈述不覆盖它——
+证书对那个具体实例不做秩断言。证书的匹配一侧已经覆盖二维芯片（\S\ref{sec:routing}）；芯
+片晶格的宽度下界是后续工作（\S\ref{sec:limits}），且本节没有任何内容依赖它。
 
 %% ===================================================================
 \section{实证演示：拿标尺量一次真实搜索}\label{sec:empirical}
@@ -622,19 +630,22 @@ hyper-optimizer~\cite{gray2021hyper}（v0.7.1，\texttt{minimize=size}，每实�
     {搜索方差——\\没有绝对参照\\就不可见};
 \end{tikzpicture}
 \caption{找到的收缩宽度减认证 stem 尺度 $N+1$，遍历 grid 族（cotengra hyper-optimizer，每
-实例 $128$ 次重复，\emph{不受限的树}序）。所有点都落在 $[-1,+2]$ 内：十四个中八个精确命中
-认证尺度，两个位于 $-1$（在 bag 对 bond 的一个换算单位容差之内——并未低于 stem 论题），四
-个漂到 $+1$/$+2$ 之上——一种相对基准测试无法察觉、而标尺一眼读出的质量缺口。}
+实例 $128$ 次重复，\emph{不受限的树}序）。所有点都落在 $[-1,+2]$ 内：十四个中八个与认证尺
+度数值重合，两个位于 $-1$（在 bag 对 bond 的一个换算单位容差之内——并未低于 stem 论题），
+四个漂到 $+1$/$+2$ 之上——一种相对基准测试无法察觉、而标尺一眼读出的质量缺口。}
 \label{fig:gapplot}
 \end{figure}
 
 数据落在三个 regime，每个都在承担叙事工作。第一，stem 存在性论题在野外被检验：一个不受限
 的树搜索——可以返回任何收缩树——\emph{从未}超越 stem 线一个语义换算单位以上，这正是"晶格
 网络的最优收缩可取 stem 结构"所预言的；那两个 $-1$ 点是换算残差，不是反驳。第二，
-$8\le N\le 28$ 时搜索\emph{精确}命中认证尺度——据我们所知，这是启发式收缩顺序第一次获得对
-其尺度的绝对确认，而非与其他启发式的比较。第三，$N\in\{32,36,44,53\}$ 处固定预算的搜索漂到
-尺度\emph{之上} $+1$ 到 $+2$——在 $N=36$ 处返回的顺序与认证线宣告可达的水平差了张量尺寸的
-$4$ 倍，而只做相对评判的方法论永远不会标记它。最后这个 regime 用一句话就是标尺存在的理由。
+$8\le N\le 28$ 时找到的宽度与认证尺度数值重合——在两种语义许可的粒度（$\pm1$）上一致，且
+据我们所知，这是启发式收缩顺序第一次获得对其尺度的绝对确认，而非与其他启发式的比较。第三，
+$N\in\{32,36,44,53\}$ 处固定预算的搜索（$128$ 次重复——刻意保守；生产设置高出几个量级）漂
+到尺度\emph{之上} $+1$ 到 $+2$——在 $N=36$ 处返回的顺序与认证线宣告可达的水平差了张量尺寸
+的 $4$ 倍，而只做相对评判的方法论永远不会标记它。漂移度量的是\emph{该预算下}的搜索质量，不
+是 hyper-optimizer 的极限行为；更大预算能否收拢，正是绝对参照使之可量化的问题。最后这个
+regime 用一句话就是标尺存在的理由。
 
 \paragraph{从校准 grid 到 RQC 架构。}
 grid 族负责校准标尺；stem 论题真正要生活的地方是随机量子电路的\emph{架构}，所以我们把同一
@@ -651,16 +662,16 @@ stem 论题是一个\emph{深 regime} 命题——其形式化前件是纠缠光
 \emph{该定义域之外}，列出只为描出 regime 的起点。}
 \label{tab:rqc}
 \centering\small
-\begin{tabular}{llrr}
+\begin{tabular}{llrl}
 \hline
 族 & 实例 & stem & found $-$ stem \\
 \hline
-1D 链，深（$L{=}2n$） & $n = 8..16$ & $n$ & $0,\,0,\,0$ \\
-                      & $n = 20, 24, 28$ & $n$ & $+2,\,+2,\,+2$ \\
-1D 链，极深（$L{=}3n$） & $n = 16..28$ & $n$ & $0,\,+2,\,+4,\,+4$ \\
-1D 链，$n{=}24$，深度 $L$ & $L = 6..22$（阈值之下） & $\sim L{+}1$ & $-2$（域外） \\
-                      & $L = 26..46$（深） & $24$ & $0,\,+1,\,+2,\,+4$ \\
-2D 芯片，ABCD & $16..49$ 比特，$8..20$ 周期 & $n$ & $+2 \;..\; +17$ \\
+1D 链，深（$L{=}2n$） & $n \in \{8, 12, 16\}$ & $n$ & $0,\ 0,\ 0$ \\
+                      & $n \in \{20, 24, 28\}$ & $n$ & $+2,\ +2,\ +2$ \\
+1D 链，极深（$L{=}3n$） & $n \in \{16, 20, 24, 28\}$ & $n$ & $0,\ +2,\ +4,\ +4$ \\
+1D 链，$n{=}24$，深度 $L$ & $L \in \{6, 10, \ldots, 22\}$（阈值之下） & $\sim L{+}1$ & 各 $-2$（域外） \\
+                      & $L \in \{26, 30, 38, 46\}$（深） & $24$ & $0,\ +1,\ +2,\ +4$ \\
+2D 芯片，ABCD & $16$--$49$ 比特，$8$--$20$ 周期（$11$ 实例） & $n$ & $+2$ 到 $+17$，随规模增长 \\
 \hline
 \end{tabular}
 \end{table}
@@ -676,9 +687,11 @@ $n{=}24$ 的深度扫描干净地描出进入深 regime 的过程：交叉点恰
 把 $L{=}2n$ 加深到 $3n$，stem 仍停在 $n$，搜索却漂得更远。第三——也是最锋利的发现——在
 Sycamore 类 2D 架构上，自由搜索返回的树比平凡的时间扫描 stem 高出 $+2$ 到 $+17$ 个单位，且
 缺口\emph{随规模增长}：$7\times 7$ 芯片（$49$ 比特，Sycamore-53 的尺寸级别）上，返回顺序物
-化的张量比理论免费奉上的 stem 大 $2^{17}\approx 10^{5}$ 倍。在 supremacy 类架构上，搜索者不
-只是没能胜过 stem——它连\emph{找到} stem 都做不到，而且失败恰恰在最要紧的实例上加剧；这是
-我们所知的、支持"认证的 stem 感知排序"的最强实践论据。
+化的张量比理论免费奉上的 stem 大 $2^{17}\approx 10^{5}$ 倍。在此搜索预算下，supremacy 类
+架构上的搜索者不只是没能胜过 stem——它连\emph{找到} stem 都做不到，且缺口恰恰在最要紧的实
+例上加剧。高出几个量级的预算能否收拢缺口是一个（有了标尺后可量化的）开放问题；无论如何，理
+论免费奉上的 stem 是任何搜索都不应跌破的下限——这是我们所知的、支持"认证的 stem 感知排序"
+的最强实践论据。
 
 %% ===================================================================
 \section{几何路由：brickwork 与光锥}\label{sec:routing}
@@ -691,7 +704,9 @@ Sycamore 类 2D 架构上，自由搜索返回的树比平凡的时间扫描 ste
 深度 $d$ 光锥内的比特对。在链上，第 $i$ 个嵌套跨割面对相距 $2i+1$，恰当 $i<d$ 时可达，由该
 长度的显式 walk 见证；在二维芯片上，链 walk 逐行经盒积结构抬升，在方形芯片上给出尺寸
 $\min(n/2, \sqrt{n}\,d)$ 的因果可实现匹配——又是 $\mathrm{sweepCut}$ 尺度。合起来：深
-brickwork 电路确实具备把宽度下界变成刚性下界所需的纠缠能力。
+brickwork 电路确实具备把宽度下界变成刚性下界所需的纠缠能力。物理芯片具体的 $(2{+}1)$ 维
+ABCD 耦合调度是我们尚未形式化的进一步保真度；刚性证书所消耗的——$\Omega(\min)$ 匹配尺度
+与逐 bond 光锥可达性——已对 1D 链与 2D 芯片证明。
 
 %% ===================================================================
 \section{相关工作}\label{sec:related}
@@ -729,8 +744,12 @@ bramble~\cite{kozawa2021treewidth} 是后续工作，而对一般不规则网络
 bramble，无论如何找到，都产出认证下界——因此为实用网络整理 bramble 库是工具问题而非理论缺
 口。(3)~\texttt{orderCost} 数的是物化的边界张量分量；常数因子的 FLOP 模型与切片权衡位于该
 下界之上（切片以内存换时间，不减少总功）。(4)~压缩下界按设计是 generic 的：结构化实例
-（stabilizer、真正低秩）可以也应当击穿它。(5)~零测度推论（$\Pr[\text{坍缩}]=0$）已陈述、尚
-未形式化。
+（stabilizer、真正低秩）可以也应当击穿它，而离散门集上的具体电路不被真子簇陈述覆盖。
+(5)~零测度推论（$\Pr[\text{坍缩}]=0$）已陈述、尚未形式化。(6)~stem 收缩序与路径分解的等同
+（\S\ref{sec:background}）、以及 \texttt{orderCost} 与收缩功的等同，是以 prose 论证的建模
+对应；形式化的序空间\emph{就是}路径分解本身。(7)~实证对比（\S\ref{sec:empirical}）使用固
+定且保守的搜索预算（$128$ 次重复）；观测到的漂移度量该预算下的搜索质量，非
+hyper-optimizer 的极限行为。
 
 %% ===================================================================
 \section{结论}\label{sec:conclusion}
@@ -740,6 +759,20 @@ TNCO 搜索如今有了一把绝对标尺：一个机器核验的代价下界—
 \texttt{Classical.choice}、\texttt{Quot.sound}。在校准算例上标尺是精确的：认证下界在 $54$
 处与显式 sweep 相遇，把一个启发式解变成一个可证最优的解。前方的路是范围而非信任：经子树
 Helly 到树序、到芯片晶格、再到启发式至今盲飞的不规则网络的 bramble 库。
+
+\appendix
+\section{Artifact（对照英文版附录）}\label{app:artifact}
+
+匿名 artifact 档案（链接经投稿系统提供）包含完整 Lean 开发与实证流水线。Lean 开发：17 个
+模块、约 2{,}700 行，\texttt{lake build} 构建于钉定 v4.30.0 的 Lean~4 / Mathlib；无
+\texttt{sorry}、无 \texttt{axiom} 声明；检查脚本对本文引用的每条定理执行
+\texttt{\#print axioms} 并断言输出恰为 \texttt{[propext, Classical.choice, Quot.sound]}。
+论文—artifact 对照：\S\ref{sec:bramble} \texttt{Bramble} / \texttt{GridConn}；
+\S\ref{sec:exact} \texttt{GridExact}；\S\ref{sec:model} \texttt{GridModel}；
+\S\ref{sec:rigidity} \texttt{Rigidity} / \texttt{Matching}；\S\ref{sec:routing}
+\texttt{Brickwork} / \texttt{Causal}；\S\ref{sec:endtoend} \texttt{Sycamore}。实证流水
+线：cotengra 脚本、Slurm 批处理文件与 \S\ref{sec:empirical} 背后的原始 JSON 结果（含预算
+敏感性运行），溯源记录于实验 README（集群名为匿名而隐去）。
 
 \bibliographystyle{plain}
 \bibliography{references}
