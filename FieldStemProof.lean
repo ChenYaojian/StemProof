@@ -22,6 +22,7 @@ Layered targets:
 * `FieldStemProof.GridModel` — faithful model: orders = real path decompositions of the grid
 * `FieldStemProof.Brickwork` — keystone: deep brickwork routes a min(n,√n·d) cross-cut matching
 * `FieldStemProof.Causal` — causal reachability: cross-cut bonds within the depth-d lightcone
+* `FieldStemProof.CheckAxioms` — build-time axiom audit of every paper-cited theorem
 -/
 import FieldStemProof.Defs
 import FieldStemProof.Gates
@@ -40,3 +41,4 @@ import FieldStemProof.GridExact
 import FieldStemProof.GridModel
 import FieldStemProof.Brickwork
 import FieldStemProof.Causal
+import FieldStemProof.CheckAxioms
