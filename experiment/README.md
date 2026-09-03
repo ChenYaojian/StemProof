@@ -8,12 +8,16 @@ cotengra's hyper-optimizer.
 ## Provenance
 
 - Server: Slurm HPC cluster (name withheld for anonymity), partition `debug`, job 181890, 8 CPUs / 16 GB, ~22 min total.
-- Environment: conda env `szq_tnc` (python 3.9), cotengra 0.7.1.
+- Environment: conda env (name withheld for anonymity; python 3.9), cotengra 0.7.1.
 - Command: `python grid_floor_experiment.py 6,8,10,12,16,20,24,28,32,36,40,44,48,53 128 8`
   (128 hyper-optimizer repeats per instance, minimize="size").
 - Instances: closed N x N grid tensor networks, all bond dimensions 2, built as raw
   einsum inputs (no quimb dependency); `found_width` = log2 of the largest
   intermediate tensor of the best found contraction tree.
+- Search settings: `HyperOptimizer(minimize="size", max_repeats, parallel)` with all
+  other settings at cotengra 0.7.1 defaults (method pool as shipped). No RNG seed was
+  fixed, so individual searches are stochastic; run-to-run variance is addressed by the
+  budget sweep of Part 4 (128/512/4096 repeats), not by seeding.
 
 ## Result summary (found - (N+1))
 
@@ -50,9 +54,11 @@ prescribes". Raw output: results_rqc.json.
 - 1D depth sweep (n=24): tracks min(n, spatial cut); crossover at L~26 ~ n,
   i.e. where the entanglement lightcone first spans the chain. Shallow entries
   (L < n) are OUTSIDE the stem-thesis domain -- below threshold the lightcone
-  has not connected all qubits (Napp's simulable phase; formal boundary =
-  the machine-checked saturation condition routedBonds = min(n, b*d) /
-  bond_causal). They are kept only to trace where the deep regime begins.
+  has not connected all qubits (Napp's simulable phase; the deep-regime marker
+  is the schedule-counting theorem routed_card_le plus the one-directional
+  lightcone walk bond_causal -- reachability for i < d is machine-checked;
+  the converse is not formalized). They are kept only to trace where the
+  deep regime begins.
 - 2D ABCD chips (16-36 qubits): found EXCEEDS the trivial time-sweep stem by
   +2..+9 units (up to 2^9 ~ 500x tensor size at 6x6, 12 cycles): on
   supremacy-class architectures the searcher fails to FIND the stem.

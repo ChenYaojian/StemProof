@@ -21,7 +21,8 @@ Sycamore 53-20 ≈ `10^18`、Sycamore-70 ≈ `10^24`。
   Sycamore 成为 corollary，**绕开随机矩阵 `Pr(·)` 分析**。前件（跨割面匹配）经
   Kronecker 路由约化为**纯组合**条件。
 - **D** 代入复现 Sycamore 数字
-- **端到端**：`sycamore53_lower_bound` 单一定理合取 A+C+D（见 §1）。
+- **端到端**：`sycamore53_lower_bound` 单一定理合取 A+D（割面、代价、stem 三项）；C（秩
+  侧）以伴随定理并列（`sycamore53_bond_floor`），刻意不入主定理合取（见 §1）。
 
 > **本轮重大进展**：C 从"开放概率猜想"重构为"已证结构定理 + 一个纯组合的剩余前件"。这
 > 是路线 B（结构 / 复杂度理论）对路线 A（随机矩阵概率）的替代，与本框架"图结构 + 代数几何
@@ -36,8 +37,8 @@ Sycamore 53-20 ≈ `10^18`、Sycamore-70 ≈ `10^24`。
 
 ### 引理 B 线（核心原创）
 - `generic_nonsingular` — **genericity 引擎**：参数化方阵在某一点非奇异 ⇒ 其行列式是
-  非零多项式 ⇒ 在一个真代数子簇之外处处非奇异。（Schwartz–Zippel /
-  `MvPolynomial.funext`。）
+  非零多项式 ⇒ 在一个真代数子簇之外处处非奇异。（单点求值非零性论证 /
+  `MvPolynomial.funext`；无次数界与概率计数，故不以 Schwartz–Zippel 相称。）
 - `flatten` / `squareFlatten` / `flatten_map` — 量子比特张量跨割面的 flattening 矩阵化，
   eval 与 flatten 交换。
 - `generic_tensor_full_schmidt` — **无约束 generic 量子比特张量跨任意平衡割面满 Schmidt
@@ -69,6 +70,10 @@ Sycamore 53-20 ≈ `10^18`、Sycamore-70 ≈ `10^24`。
 原"猜想 C"重构为已证结构定理，全部 `#print axioms` 仅标准公理：
 - `BulkEntangling` / `ContractionRigid` / **`contraction_rigidity`** — *能跨割面纠缠
   （∃ 一个使割面满秩的门配置）⇒ generic 满秩*（`generic_full_schmidt` 的具名推论，无概率）。
+  注：`ContractionRigid` 的第二子句由恒等式 `det_squareFlatten_map` 对一切 `T` 恒成立，故该
+  定义逻辑等价于"flattening 行列式是非零多项式"；逐点子句仅为下游（`no_compression`）的使用
+  形态而保留。properness（补集非空）另证于 `exists_nonsingular_of_det_ne_zero`（需无穷域），
+  不属于该证书。
 - `Matching.det_bondProd_ne_zero` — **Kronecker 路由聚合**：k 个非奇异 bond 的迭代 Kronecker
   积满秩 = 满 Schmidt 秩 `2^k`（对 k 归纳，`Fin.consEquiv` + `det_kronecker`）。
 - `bulkEntangling_of_matching` / `contractionRigid_of_matching` — 跨割面 k-匹配 ⇒ BulkEntangling
@@ -80,8 +85,10 @@ Sycamore 53-20 ≈ `10^18`、Sycamore-70 ≈ `10^24`。
 ### 端到端（`Sycamore.lean` + `GridModel.lean`）— 一条机器核验定理，**忠实模型**
 - **`sycamore53_lower_bound`** 合取：（割面=53）∧（代价 ∈[10^18,10^19)）∧（stem：**cc = 54
   精确钉死**——任意序宽度 ≥ 54（增广 bramble）且显式 sweep 达到 54，即 floor 与解相遇、sweep
-  在 stem 类内**可证最优**；任意序总代价 ≥ 2^54）∧（53 比特平衡割面 ⇒ ContractionRigid，满
-  Schmidt 秩 `2^53`）。
+  在 stem 类内**可证最优**；任意序总代价 ≥ 2^54）。秩侧（53 比特平衡割面 ⇒
+  ContractionRigid，满 Schmidt 秩 `2^53` 的**能力见证**——常量族、任何平衡割面逐字可得）
+  以伴随定理并列（`sycamore53_bond_floor`），**刻意不入主定理合取**：其逻辑内容单薄，并入
+  会借走其余合取项的分量。
 - **模型退化性已消除**（`GridModel.gridModel`）：`Order` = 真实 53×53 时空 grid 图
   （`gridGraph 53`，1D 链深 regime 时空晶格）的**全体真路径分解**（`IsPathDecomp` 三公理：
   vertex-interval / edge-cover / vertex-cover），`width` = 分解的实际最大 bag ——**无任何
@@ -93,11 +100,12 @@ Sycamore 53-20 ≈ `10^18`、Sycamore-70 ≈ `10^24`。
 - **代价对象与认证 floor**（新叙事的字面兑现）：`bagsCost`（各步物化边界张量的尺寸和）+
   `orderCost`；**`gridModel_cost_floor` / `sycamore53_cost_floor`：任意序总代价 ≥ 2^54**——
   下界从"宽度"升级为"代价"陈述。
-- **压缩下界（rigidity 的代价语义粘接）**：`inner_dim_le_of_factorization`（`det ≠ 0` 的方阵
+- **压缩下界（独立的 rank 侧证书）**：`inner_dim_le_of_factorization`（`det ≠ 0` 的方阵
   无内维 < 边长的因子分解；经 `mulVec` 单射 + `finrank` 论证，避开 `Matrix.rank` 的 universe
-  限制）；**`ContractionRigid.no_compression` / `sycamore53_bond_floor`：generic 参数下割面
-  flattening 无内维 < 2^53 的因子分解**——低秩/MPS/decision-diagram 式压缩在 generic 意义下
-  被定理焊死，宽度 floor 因此是真代价 floor。
+  限制）；**`ContractionRigid.no_compression` / `sycamore53_bond_floor`：对刚性参数族、在其
+  零集之外，割面 flattening 无内维 < 2^53 的因子分解**——低秩/MPS/decision-diagram 式压缩
+  对这样的族被定理封死。注意：该证书与 `orderCost` 代价 floor 分别认证、在端到端定理中合取
+  而非复合；基准见证族在门参数上是常量（能力见证）。
 - `#print axioms sycamore53_lower_bound = [propext, Classical.choice, Quot.sound]`：**全库已无
   任何自定义 axiom**。文献输入（`MarkovShi` / `LatticePathwidthBound`）改为具名 `Prop`、按具体
   模型供给；lattice 界在模型上以 `C = 1` 兑现（`sycamore53_latticeBound`），端到端定理成为
@@ -111,7 +119,9 @@ Sycamore 53-20 ≈ `10^18`、Sycamore-70 ≈ `10^24`。
 - `order_le_maxBag` / `order_le_maxBag'` — 抽象 pathwidth bramble 下界：路径分解最大 bag
   ≥ bramble order。
 - `cross k i = row i ∪ col i`；`cross_inter_nonempty`（两两相交，真 bramble）；
-  `cross_order_ge`（`k ≤ 2·order`，行/列投影计数，Θ(k)；精确值 k+1 但 Θ 足够）。
+  `cross_order_ge`（`k ≤ 2·order`，行/列投影计数，Θ(k)；该 bramble 的精确阶为 ⌈k/2⌉——
+  一个顶点 (i,j) 同时命中十字 i 与 j，配对索引即得该尺寸的 hitting set——精确 grid floor
+  需 `GridExact` 的增广 bramble）。
 - `walk_hits` / `bag_meets_betweenness` — **连通 ⇒ 区间桥**：沿 G-walk 归纳，每条边经同一 bag
   ⇒ 顶点区间成重叠链 ⇒ 连通顶点集占据连续 index 区间。
 - `pathwidth_ge_order_of_connected` — 组装：任意图 G 的任意路径分解 + 两两相交且 G-连通的
@@ -129,9 +139,11 @@ Sycamore 53-20 ≈ `10^18`、Sycamore-70 ≈ `10^24`。
 ### P1 拱心石：deep Sycamore ⇒ Ω(min(n,√n·d)) matching（`Brickwork` / `Causal`，自证）
 把"割面宽（bramble）"与"宽割面满秩（rigidity）"接成单条 cost 下界，并把 matching 的 size 钉到
 bramble scale。三层，全部 `#print axioms` 仅标准公理：
-- **拱心石**（`Brickwork.deep_brickwork_contractionRigid`）：size 为 `sweepCut = min(n,√n·d)` 的
-  割面 matching 收缩刚性 ⇒ generic 满 Schmidt 秩 `2^min`；`sycamore53_matching_rigid`（size 53,
-  秩 `2^53`）。`min` 自动覆盖两 regime：deep ⇒ n，shallow ⇒ √n·d（Napp 相变所在）。
+- **尺寸钉合**（`Brickwork.deep_brickwork_contractionRigid`）：在 size 为
+  `sweepCut = min(n,√n·d)` 的割面上存在收缩刚性的见证族——`chip_contractionRigid` 在该尺寸
+  的实例化；见证以块对齐匹配为数据、不消费 schedule 定理，只认证割面尺寸层面的能力；
+  `sycamore53_matching_rigid`（size 53）。`min` 自动覆盖两 regime：deep ⇒ n，shallow ⇒ √n·d
+  （Napp 相变所在）。
 - **gate-counting 上界**（`Brickwork.Schedule`）：brickwork = d 层、每层 ≤ b 个跨割面门；
   `routed_card_le` **证明** bond ≤ `b·d`（`card_biUnion_le_card_mul`，lightcone 计数，非假设）；
   `exists_schedule_routed_card` 达到 `min(b·d, n)`。
@@ -140,9 +152,10 @@ bramble scale。三层，全部 `#print axioms` 仅标准公理：
   `grid_bond_causal` + `grid_causal_matching_size`（2D 芯片 `pathGraph(2m)□pathGraph(K)`：行内
   对复用链 walk 经 `boxProdLeft` 抬升，K·min(m,d) = 方芯片下 `min(n/2,√n·d)`）。
 
-> **影响**：审稿人 Q2 的全部环节现在都有机器核验的几何/组合证据——**为什么是 min**（算术）、
-> **为什么 b·d 封顶**（gate-counting）、**为什么深度 d 能实现这些 bond**（lightcone walk，1D+2D）。
-> "deep ⇒ Ω(min) matching"不再有抽象隔离或物理 hand-waving。
+> **影响**：审稿人 Q2 的关键环节有了机器核验的几何/组合证据——**为什么是 min**（算术）、
+> **为什么 b·d 封顶**（gate-counting）、**为什么深度 d 内这些 bond 因果可达**（lightcone
+> walk，1D+2D，仅可达方向）。这些定理为物理路由一步**划定范围而未兑现它**：刚性见证不消费
+> 它们，"具体 brickwork 实现跨割面匹配"仍是 prose 中的建模对应（见 §4）。
 
 ---
 
@@ -155,8 +168,9 @@ bramble scale。三层，全部 `#print axioms` 仅标准公理：
 
 经 bramble 下界自证后，**唯一剩余的文献输入是 `pw = Θ(tw)`（"stem 是全局最优"）**：把
 已自证的"stem 宽度 ≥ Θ(min)"推广到"一切（树）收缩也不更省"。这是一条**已发表、已严格证明**
-的结果，Mathlib 尚未收录且无可导入的形式化版本（唯一的 treewidth 形式化在 Coq，Lean 无法
-引用）：
+的结果，Mathlib 尚未收录且无可导入的形式化版本（treewidth 基础形式化存在于 Coq
+（Doczkal–Pous）与 Isabelle/HOL（Dittmann 的 AFP `Tree_Decomposition` 条目，证到树与完全图
+的 treewidth），均无法导入 Lean，且都不含 pathwidth）：
 
 | 具名 `Prop` / 假设 | 文献 | 内容 | 状态 |
 |---|---|---|---|
@@ -173,8 +187,9 @@ bramble scale。三层，全部 `#print axioms` 仅标准公理：
 
 ## 3. 开放（未证）
 
-C 线已从概率猜想重构为"已证结构定理 + 纯组合前件"，且 P1（几何路由 / matching 实现）这一组合
-前件已大体兑现（`Brickwork` + `Causal`，见 §1）。剩余开放项只有两条，均**不再是随机矩阵 /
+C 线已从概率猜想重构为"已证结构定理 + 纯组合前件"；P1 侧的 gate-counting 与 lightcone 可达
+（单向）已机器证明，但它们只为物理路由**划定范围**——刚性见证不消费这些定理，"具体 brickwork
+实现跨割面匹配"仍是未形式化的建模对应（见 §4）。除此之外的开放项有两条，均**不再是随机矩阵 /
 谱分析**：
 
 1. **`pw = Θ(tw)`（唯一剩余文献输入，以显式假设出现）**：把已自证的"stem(pathwidth) 宽度 ≥
@@ -184,8 +199,9 @@ C 线已从概率猜想重构为"已证结构定理 + 纯组合前件"，且 P1�
    陈述，尚未形式化。
 
 > 与上一版的区别：原"猜想 C（average-case Haar 紧性）"作为**概率命题**已被结构定理取代；P1 的
-> 几何路由（"深 brickwork 容许 Ω(min) 跨割面 matching"）已由 gate-counting + lightcone 因果可达
-> （1D & 2D）机器证明，不再是开放项。Napp 浅层反例是结构定理前件（深度阈值）的**边界刻画**。
+> 组合脚手架（gate-counting 计数封顶 + lightcone 因果可达，1D & 2D，仅可达方向）已机器证明，
+> 但物理路由本身（具体 brickwork 实现匹配）仍是 scope 而非 discharge。Napp 浅层反例是结构定理
+> 前件（深度阈值）的**边界刻画**。
 
 ---
 
@@ -193,7 +209,7 @@ C 线已从概率猜想重构为"已证结构定理 + 纯组合前件"，且 P1�
 
 1. **~~模型退化性~~（已解决，`GridModel`）**：原 `sycamore53` 玩具模型（`Order := Unit`、
    width 恒 53）已替换为**忠实模型**——序空间 = 真实 53×53 时空 grid 图的全体路径分解，宽度
-   为派生量，下上界均机器证明（`27 ≤ cc ≤ 54`）。剩余两点保真度缝隙：(i) 序空间为 stem
+   为派生量，下上界均机器证明（增广 bramble 与显式 sweep 两侧钉死，`cc = 54` 精确）。剩余两点保真度缝隙：(i) 序空间为 stem
    （线性）序全体，推广到任意树收缩序即 `pw=Θ(tw)` 文献输入（以显式假设携带）；(ii) grid 为
    1D 链深 regime 的时空晶格，(2+1)D 芯片晶格的 bramble 版本待做（matching 侧已由 `Causal`
    覆盖 2D 芯片）。~~精确常数~~（已解决，`GridExact`）：增广 bramble 把下界收紧到 k+1 = 54，与 sweep 相遇——宽度层面证书零间隙。
@@ -216,8 +232,8 @@ C 线已从概率猜想重构为"已证结构定理 + 纯组合前件"，且 P1�
 
 本工作的潜在新意集中在：
 1. **统一严格框架**：把"观察到的 stem 低复杂度"解释为 **pathwidth ≈ treewidth on
-   lattices** + **随机性 ⇒ 无秩坍缩 ⇒ 下界紧**，并明确区分"收缩方法下界"与"算法无关硬
-   度"。
+   lattices** + **generic 取值 ⇒ 无秩坍缩**（后者是独立证书；"下界紧"未形式化），并明确区
+   分"收缩方法下界"与"算法无关硬度"。
 2. **Contraction Rigidity 结构定理（核心新意）**：把"随机电路 average-case 紧性"从概率命题
    重构为结构命题——"能跨割面纠缠 ⇒ generic 无秩坍缩"，并经 **Kronecker 路由**把前件约化为
    *纯组合*的跨割面匹配条件。这把一个拥挤的随机矩阵问题，换成了干净的代数几何 + 组合命题，
@@ -258,10 +274,11 @@ rigidity 定理、并约化随机性的整体论证是新的。
 ## 7. 一句话给评审
 
 > 我们有一个**机器核验、无 sorry、全库零自定义 axiom**的 Lean 形式化，建立了 **Contraction
-> Rigidity 结构定理**——"能跨割面纠缠的电路 ⇒ generic 无秩坍缩 ⇒ 紧收缩下界"——从而把随机
-> 电路紧下界从一个概率（随机矩阵）问题**重构为结构 + 纯组合问题**（随机电路 / Sycamore 成
-> 为 corollary）；并以单一定理 `sycamore53_lower_bound` 给出端到端陈述（割面=53、代价
-> ~10^18、**忠实模型**上 stem 最优达到且 `cc=Θ(53)` 两侧钉死、满 Schmidt 秩 2^53），`#print axioms` 仅标准公理。**stem(pathwidth)
+> Rigidity 结构定理**——"能跨割面纠缠的参数族 ⇒ generic 无秩坍缩"——从而把该问题从概率
+> （随机矩阵）分析**改述为结构 + 纯组合条件**（离散门集的具体电路不被真子簇陈述覆盖；"下界
+> 紧"未形式化）；并以单一定理 `sycamore53_lower_bound` 给出端到端合取（割面=53、代价
+> ~10^18、**忠实模型**上 stem 最优达到且 `cc = 54` 两侧钉死），满 Schmidt 秩 2^53 的能力
+> 见证（常量族）以伴随定理并列而不入合取，`#print axioms` 仅标准公理。**stem(pathwidth)
 > 宽度下界 Θ(min(n,√n·d)) 与"deep ⇒ Ω(min) 跨割面 matching"（gate-counting + lightcone 因果
 > 可达，1D & 2D）均已完全自证**；唯一剩余的文献输入是 `pw = Θ(tw)`（把 stem 下界推广到一切
 > 收缩，已发表 grid 定理），以显式假设出现在定理签名中、并在具体 Sycamore 模型上由计算兑现。

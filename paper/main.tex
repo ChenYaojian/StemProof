@@ -1,9 +1,13 @@
 %% CPP 2027 submission skeleton — double-blind, sigplan format, 12 pp excl. refs/appendix.
 %% Deadlines (AoE): abstract 2026-09-03, paper 2026-09-10.  Submit: https://cpp2027.hotcrp.com/
 %% Build: latexmk -pdf main.tex
-\documentclass[sigplan,screen,review,anonymous]{acmart}
+%% CFP-required format: acmart sigplan 10pt, double-blind review options, and
+%% \settopmatter{printfolios=true,printccs=false,printacmref=false}.
+\documentclass[sigplan,10pt,screen,review,anonymous]{acmart}
+\settopmatter{printfolios=true,printccs=false,printacmref=false}
 
-%% TODO before camera-ready: drop `review,anonymous`, fill authors, rights form.
+%% TODO before camera-ready: drop `review,anonymous` and the settopmatter line,
+%% fill authors, rights form.
 \setcopyright{none}
 \acmConference[CPP '27]{Certified Programs and Proofs}{January 11--12, 2027}{Mexico City, Mexico}
 \acmYear{2027}
@@ -40,7 +44,7 @@
 \begin{document}
 
 \title{How Far From Optimal Is Your Contraction Order?\\
-       Machine-Checked Absolute Lower Bounds for Tensor-Network Contraction}
+       Machine-Checked Absolute Lower Bounds for Sweep-Style Tensor-Network Contraction}
 %% Alt titles (pick one):
 %%   Certified Lower Bounds for Tensor-Network Contraction Ordering
 %%   An Absolute Yardstick for Tensor-Network Contraction: Certified Cost Floors in Lean
@@ -50,27 +54,36 @@
 \affiliation{\institution{Anonymous Institution}\city{}\country{}}
 
 \begin{abstract}
-The cost of contracting a tensor network is governed by the contraction order, and finding an
-optimal order (TNCO) is NP-hard. Practice therefore relies on heuristic search ---
-hyper-optimized contraction trees, simulated annealing, community detection --- whose results
-can only be judged \emph{relatively}: order $A$ beats order $B$, but the distance of either to
-the true optimum is unknown, because no trusted \emph{absolute} yardstick exists. We supply
-that yardstick: machine-checked lower bounds on contraction cost --- unconditional over the
-\emph{sweep-style (stem)} order class, extending to arbitrary contraction trees under one
-explicitly-stated published hypothesis ($\pw = \Theta(\tw)$ on lattices) --- formalized in
-Lean~4 over Mathlib ($\sim$2{,}700 lines, no \texttt{sorry}, \textbf{zero custom axioms}).
-Two ingredients are certified. A \emph{width} floor: brambles are combinatorial dual
-certificates for pathwidth, proved self-contained via an elementary interval-Helly argument
---- the first pathwidth lower-bound theory in Lean. And a width-to-cost link: our
-\emph{Contraction Rigidity} theorem shows that a network \emph{capable} of full rank across a
-cut has full rank for all gate parameters outside a proper subvariety --- no probability, the
-capability hypothesis reducing via Kronecker routing to a combinatorial cross-cut matching ---
-and an explicit witness family realizes this capability at the benchmark cut, closing the
-low-rank (decision-diagram) loophole for generic gate values. On the calibration instance ---
-the $53\times53$ deep-window spacetime grid of a wire chain, matching the Sycamore-53
-\emph{cut scale} --- the certificate is \emph{gap-free}: every stem order has width $\ge 54$
-and pays total cost $\ge 2^{54}$, and our explicit sweep attains width $54$ --- a found
-solution carrying a machine-checked proof of optimality among stem orders.
+Tensor-network contraction cost is governed by the contraction order, and finding an
+optimal order (TNCO) is NP-hard, so practice relies on heuristic search. Search results
+can only be judged \emph{relatively} (order $A$ beats order $B$) because no trusted
+\emph{absolute} yardstick bounds the distance to the true optimum. We supply
+that yardstick: machine-checked lower bounds on contraction cost, unconditional over the
+\emph{sweep-style (stem)} order class, formalized in
+Lean~4 over Mathlib ($\sim$2{,}800 lines, no \texttt{sorry}, \textbf{zero custom axioms});
+the extension to arbitrary contraction trees rests on one explicitly-stated published
+hypothesis ($\pw = \Theta(\tw)$ on lattices) and is a prose corollary, not itself formalized.
+The main certified ingredient is a \emph{width} floor: brambles are combinatorial dual
+certificates for pathwidth, proved self-contained via an elementary interval-Helly argument,
+to our knowledge the first pathwidth lower-bound theory in Lean. A second, deliberately
+elementary certificate addresses the rank-side loophole for \emph{given} parametric
+families: the \emph{Contraction Rigidity} theorem
+upgrades one full-rank gate configuration to a nonzero cut-determinant polynomial (the
+certificate is that nonvanishing, a one-point evaluation argument with no probability
+involved), with the capability
+hypothesis reduced via Kronecker routing to a combinatorial cross-cut matching, so that for
+such a family no low-rank (decision-diagram-style) factorization crosses the cut at any gate
+parameter outside that polynomial's vanishing set. This rank-side certificate is
+framework-level and secondary: it is stated alongside the cost floor as a companion theorem,
+outside the headline conjunction and never composed with it; its
+instantiation at the calibration cut certifies cut-size \emph{capability} only (a witness
+constant in the gate parameters, available verbatim at any balanced cut); and it does not
+cover concrete circuits over discrete gate sets. The calibration instance is the $53\times53$ deep-window spacetime
+grid of a wire chain, whose only tie to Sycamore-53 is the shared \emph{cut scale} $53$;
+there the certificate is \emph{gap-free in width}: every stem order has width $\ge 54$ and pays
+total cost $\ge 2^{54}$ in the model's bag-count cost semantics, and our explicit sweep
+attains width $54$: an exhibited solution carrying a machine-checked proof of optimality
+among stem orders.
 \end{abstract}
 
 \begin{CCSXML}
@@ -86,7 +99,7 @@ solution carrying a machine-checked proof of optimality among stem orders.
 \ccsdesc[500]{Theory of computation~Type theory}
 \ccsdesc[500]{Theory of computation~Quantum complexity theory}
 \keywords{tensor networks, contraction ordering, lower bounds, optimality certificates,
-Lean, Mathlib, pathwidth, brambles, Schwartz--Zippel, quantum circuit simulation}
+Lean, Mathlib, pathwidth, brambles, quantum circuit simulation}
 
 \maketitle
 
@@ -95,8 +108,8 @@ Lean, Mathlib, pathwidth, brambles, Schwartz--Zippel, quantum circuit simulation
 
 Contracting a tensor network is the workhorse of classical quantum-circuit simulation, and
 its cost is governed almost entirely by one discrete choice: the \emph{contraction order}.
-Choosing well is hard --- finding an optimal order is NP-hard on general
-networks~\cite{markov2008simulating} --- so a decade of practice has produced a rich
+Choosing well is hard (finding an optimal order is NP-hard on general
+networks~\cite{markov2008simulating}), so a decade of practice has produced a broad
 ecosystem of heuristics: hyper-optimized contraction trees~\cite{gray2021hyper},
 big-batch and index-slicing methods~\cite{pan2022solving}, stem-shaped orders for supremacy
 circuits~\cite{huang2020classical}, multi-stem refinements~\cite{swtnc2025}, and
@@ -104,19 +117,9 @@ reuse-aware variants~\cite{kalachev2021recursive}. These tools are impressive, a
 share one methodological blind spot: \textbf{every quality judgment they support is
 relative}. A new heuristic is validated by beating the previous one on a benchmark suite.
 How far \emph{either} order is from the true optimum is unknown, because nothing trustworthy
-bounds the optimum from below. ``State of the art'' means, literally, ``the best among the
-orders we happened to find'' (Fig.~\ref{fig:yardstick}).
+bounds the optimum from below. In this regime ``state of the art'' just means the best among
+the orders found so far (Fig.~\ref{fig:yardstick}).
 
-%% GEMINI-PROMPT (fallback if the TikZ below is replaced by an image):
-%% "A clean schematic diagram, vector style, white background. A vertical axis labeled
-%%  'contraction cost (log scale)'. On the upper part, three dots labeled 'order A', 'order B',
-%%  'order C (best found)' connected by short curved arrows with labels 'beats' -- illustrating
-%%  relative comparison. Below the dots, a large question-mark region labeled 'distance to
-%%  optimum: unknown'. At the bottom, a thick horizontal line labeled 'certified floor
-%%  (machine-checked theorem)' with the region below it hatched and labeled 'no contraction
-%%  order exists here'. On the right margin, a bracket showing the gap between 'order C' and
-%%  the floor labeled 'certified optimality gap'. Minimal colors: blue dots, red floor line,
-%%  gray hatching."
 \begin{figure}[t]
 \centering
 \begin{tikzpicture}[scale=0.9, font=\small]
@@ -142,39 +145,37 @@ orders we happened to find'' (Fig.~\ref{fig:yardstick}).
 \caption{Relative vs.\ absolute evaluation of contraction orders. Heuristics can rank found
 orders against each other (top), but only a certified lower bound (bottom) turns the best
 found order into a solution with a provable optimality gap. On our calibration instance the
-floor \emph{meets} the found sweep: the gap is zero.}
+width floor \emph{meets} the explicit sweep: the width gap is zero.}
 \label{fig:yardstick}
 \end{figure}
 
 What is missing is an \emph{absolute yardstick}: a trusted bound $L$ together with a proof
 that \emph{no} contraction order costs less than $L$. With such a floor, any found order $S$
-acquires a certificate --- $\mathrm{cost}(S)/L$ bounds its optimality gap --- exactly as an
+acquires a certificate ($\mathrm{cost}(S)/L$ bounds its optimality gap), exactly as an
 LP dual bound certifies a branch-and-bound incumbent, or an UNSAT certificate closes a SAT
-search. Nothing of this kind has existed for TNCO.
+search. Fragments of an absolute reference do exist: exhaustive dynamic programming finds
+guaranteed-optimal contraction sequences for small networks~\cite{pfeifer2014faster}, and
+exact-treewidth solvers attach compact certificates to the width bounds they
+compute~\cite{tamaki2022heuristic}. But the former stops far below the instances that
+matter, and in both the guarantee rests on unverified search and checker code. A floor whose
+\emph{validation} is a machine-checked theorem has not existed for TNCO.
 
 Why not? Because a \emph{trustworthy} cost floor must survive three independent attacks, and
 each attack has historically been fatal (Fig.~\ref{fig:floors}). First, the graph-theoretic
 width bound underlying the floor may simply be wrong: lower-bound proofs in width theory are
 subtle, and an unverified bound certifies nothing. Second, width may fail to translate into
 cost: width counts indices of the largest intermediate tensor, and if that tensor has
-low-rank structure, a cleverer representation pays less --- decision-diagram simulators
+low-rank structure, a cleverer representation pays less; decision-diagram simulators
 demonstrably break the width proxy on structured instances~\cite{dd2025treewidth}. Third,
 the translation must hold for the \emph{instances at hand}, not just in the worst case:
 random shallow circuits are classically easy despite large width~\cite{napp2022efficient}.
-Our response to all three is the same: make every link a machine-checked theorem, and split
-the labor so that \emph{search may be heuristic but trust never is} --- finding a good
-bramble (the dual certificate below) is a search problem; \emph{validating} one is a
-verified theorem.
+Our response: make each link a named machine-checked theorem, and split the labor
+accordingly — finding a good bramble (the dual certificate below) is a heuristic search
+problem, while \emph{validating} one is a verified theorem. The first two attacks are closed
+unconditionally for stem orders; the third is answered by a separate framework-level
+certificate for \emph{generic} parametric families at a cut, which deliberately does not
+cover concrete circuits over discrete gate sets (\S\ref{sec:endtoend}).
 
-%% GEMINI-PROMPT (fallback):
-%% "A clean vertical stack of three rounded rectangles, vector style, like an architecture
-%%  diagram. Top box: 'Width floor -- bramble = dual certificate (interval Helly)', with a
-%%  crossed-out attack arrow labeled 'unverified graph bound'. Middle box: 'Cost floor --
-%%  cost(o) = sum of 2^|bag|', attack arrow crossed out labeled 'width is only a proxy'.
-%%  Bottom box: 'Compression floor -- Contraction Rigidity: generically no low-rank
-%%  factorization', attack arrow crossed out labeled 'decision-diagram / MPS escape'.
-%%  Right side annotations in monospace: theorem names grid_pathwidth_exact,
-%%  gridModel_cost_floor, no_compression. Muted professional colors."
 \begin{figure}[t]
 \centering
 \resizebox{\columnwidth}{!}{%
@@ -188,6 +189,7 @@ verified theorem.
      {\scriptsize\ttfamily gridModel\_cost\_floor}};
   \node[draw, rounded corners, fill=green!10, minimum width=6.4cm, align=center] (r) at (0,0)
     {\textbf{compression floor} --- Contraction Rigidity\\[-1pt]
+     {\scriptsize generic parametric families only}\\[-1pt]
      {\scriptsize\ttfamily ContractionRigid.no\_compression}};
   \draw[atk] (-5.6,2.7) node[left, align=right, font=\scriptsize]
     {unverified\\graph bound} -- (w.west);
@@ -198,66 +200,100 @@ verified theorem.
   \foreach \y in {2.7,1.35,0} {\draw[red!60!black, thick]
     (-4.55,\y-0.14) -- (-4.31,\y+0.14) (-4.55,\y+0.14) -- (-4.31,\y-0.14);}
 \end{tikzpicture}}
-\caption{A trustworthy cost floor blocks three attacks with three certified layers; each
-layer is a named Lean theorem with standard axioms only.}
+\caption{A trustworthy cost floor blocks three attacks with three \emph{separately} certified
+layers; each layer is a named Lean theorem with standard axioms only. The layers are related
+in prose, not by a single theorem (the compression floor is a companion theorem outside the
+headline conjunction): the compression floor speaks about parametric tensor
+families at a cut, not about the cost model's boundary tensors, its benchmark
+instantiation is an instance-independent capability witness, and it blocks the low-rank
+attack for \emph{generic} parametric families only --- concrete circuits over discrete gate
+sets, including the physical benchmark circuit, lie outside its scope
+(\S\ref{sec:endtoend}, \S\ref{sec:limits}).}
 \label{fig:floors}
 \end{figure}
 
-This paper delivers that yardstick, formalized in Lean~4 over
-Mathlib~\cite{moura2021lean,mathlib2020}: $\sim$2{,}700 lines, 17 modules, no
-\texttt{sorry}, zero custom axioms --- \texttt{\#print axioms} of every theorem below
+This paper delivers that yardstick for the lattice calibration family, together with a
+verified certificate-validation interface that applies to any network once a bramble for it
+is supplied (\S\ref{sec:limits}), formalized in Lean~4 over
+Mathlib~\cite{moura2021lean,mathlib2020}: $\sim$2{,}800 lines, 18 modules (17 proof
+modules plus a build-time axiom-audit module), no
+\texttt{sorry}, zero custom axioms; \texttt{\#print axioms} of every theorem below
 reports only \texttt{propext}, \texttt{Classical.choice}, \texttt{Quot.sound}. The
-unconditional floors quantify over all \emph{sweep-style (stem)} orders --- the class that
+unconditional floors quantify over all \emph{sweep-style (stem)} orders, the class that
 state-vector-like simulators and stem-shaped supremacy strategies actually
-populate~\cite{huang2020classical} --- and extend to arbitrary contraction trees under a
-single explicitly-stated published hypothesis ($\pw = \Theta(\tw)$ on lattices), carried in
-theorem statements rather than assumed globally.
+populate~\cite{huang2020classical}. The extension to arbitrary contraction trees rests on a
+single explicitly-stated published hypothesis ($\pw = \Theta(\tw)$ on lattices); the
+development contains no type of tree contraction orders, so that conditional statement is a
+literature corollary quoted in prose, not a Lean theorem (\S\ref{sec:limits}).
 
 \paragraph{Contributions.}
 \begin{itemize}
   \item \textbf{An absolute yardstick for TNCO (\S\ref{sec:framework},\S\ref{sec:model}).}
-    A formal cost/width model in which ``no contraction order beats bound $L$'' is a
-    theorem quantified over a \emph{genuine} order space --- real path decompositions of
-    the network graph, widths derived, never postulated --- with an explicit cost object:
+    A formal cost/width model in which ``no stem (sweep) contraction order beats bound
+    $L$'' is a theorem quantified over a \emph{genuine} order space (real path decompositions of
+    the network graph, widths derived, never postulated) with an explicit cost object:
     \lstinline|orderCost| sums the materialized boundary tensors, and the floor is read off
     as a \emph{cost} statement (\lstinline|gridModel_cost_floor|:
-    $2^{N+1} \le \mathrm{cost}(o)$ for every order $o$ of the $N \times N$ lattice --- a
+    $2^{N+1} \le \mathrm{cost}(o)$ for every order $o$ of the $N \times N$ lattice, a
     direct corollary of the width floor, made explicit so the yardstick prices cost).
   \item \textbf{Bramble certificates in Lean (\S\ref{sec:bramble}).} Brambles are
     combinatorial \emph{dual certificates} for width, playing the role LP duality plays for
-    branch-and-bound floors: however a bramble is found --- by hand, by heuristic search ---
+    branch-and-bound floors: however a bramble is found (by hand, by heuristic search),
     the checked theorem turns it into an absolute floor. Stem (sweep) orders are exactly
-    path decompositions, whose dual argument needs only \emph{interval} Helly ---
+    path decompositions, whose dual argument needs only \emph{interval} Helly:
     elementary, unlike the subtree Helly that treewidth needs and Mathlib lacks. We prove
     the bound for genuine \emph{touching} brambles (blocks intersecting \emph{or} adjacent)
     and instantiate two: the elementary crosses (order $\Theta(k)$) and the augmented
     Seymour--Thomas-style bramble (\S\ref{sec:exact}), whose order $k+2$ pins the grid
-    floor \emph{exactly}. The first pathwidth lower-bound theory in Lean/Mathlib.
-  \item \textbf{Contraction Rigidity: width $\Rightarrow$ cost, generically
-    (\S\ref{sec:rigidity}).} A width floor is only a cost floor if intermediate tensors do
-    not collapse in rank. We close this loophole structurally: \lstinline|BulkEntangling|
-    $\Rightarrow$ \lstinline|ContractionRigid| --- one full-rank configuration upgrades to
-    full rank outside a proper subvariety (Schwartz--Zippel, no probability); the
-    hypothesis reduces via Kronecker routing to a combinatorial cross-cut matching.
-    The payoff is a formal \emph{no-compression theorem}
-    (\lstinline|ContractionRigid.no_compression|): generically, the cut flattening admits
-    no factorization with inner dimension below $2^k$ --- no MPS-style bond, no
-    rank-revealing compression undercuts the floor (the decision-diagram loophole),
-    except on a measure-zero set of instances.
-  \item \textbf{A gap-free certified calibration instance (\S\ref{sec:endtoend}).} On the
-    $53\times53$ deep-window spacetime grid --- the calibration instance at the Sycamore-53
+    floor \emph{exactly}. To our knowledge, the first pathwidth lower-bound theory in
+    Lean/Mathlib.
+  \item \textbf{Contraction Rigidity: a deliberately elementary, framework-level
+    no-compression certificate (\S\ref{sec:rigidity}).} A width floor prices cost only if intermediate tensors do
+    not collapse in rank. We address this loophole with a separate, self-standing
+    certificate, \lstinline|BulkEntangling|
+    $\Rightarrow$ \lstinline|ContractionRigid|: one full-rank configuration makes the cut
+    determinant a nonzero polynomial, confining rank collapse to that polynomial's vanishing
+    set, with no probability involved. The engine is deliberately elementary, and so is the
+    certificate's logical content: evaluation commutes with determinants, so
+    \lstinline|ContractionRigid| is equivalent to the nonvanishing of the determinant
+    polynomial alone (\S\ref{sec:rigidity}); the packaging carries the
+    value: the hypothesis reduces via Kronecker routing to a combinatorial cross-cut
+    matching, and the payoff is a formal \emph{no-compression theorem}
+    (\lstinline|ContractionRigid.no_compression|): for a rigid parametric family, outside
+    the vanishing set of one nonzero polynomial the cut flattening admits
+    no factorization with inner dimension below $2^k$, i.e.\ no MPS-style bond and no
+    rank-revealing compression (the decision-diagram loophole). We rank this layer below the
+    width floor --- its mathematical content is a one-point evaluation argument --- and its
+    scope is bounded three ways. The
+    measure-zero reading of that vanishing set is stated in prose only
+    (\S\ref{sec:limits}); the theorem is \emph{not} composed with the cost floor of
+    \S\ref{sec:model} (the two certificates are proved as separate theorems and never
+    composed, \S\ref{sec:endtoend}); and the certificate constrains a \emph{given} family $T$:
+    its existential instantiation at the benchmark cut is discharged by a Bell-type
+    witness available at any balanced cut, carrying no architecture information
+    (\S\ref{sec:endtoend}).
+  \item \textbf{A calibration instance certified gap-free in width (\S\ref{sec:endtoend}).}
+    On the $53\times53$ deep-window spacetime grid (the calibration instance at the Sycamore-53
     \emph{cut scale}; \S\ref{sec:endtoend} states exactly how it relates to the $(53,20)$
-    benchmark parameters --- one machine-checked theorem pins the optimum exactly:
+    benchmark parameters), one machine-checked theorem pins the optimum exactly:
     $\cc = 54$ (\lstinline|sycamore53_cc_exact|), every stem order pays total cost
-    $\ge 2^{54}$ (\lstinline|sycamore53_cost_floor|), a witness family built from the
-    cross-cut matching is contraction rigid at the $53$-qubit cut --- for it, generically
-    no factorization of inner dimension $< 2^{53}$ crosses
-    (\lstinline|sycamore53_bond_floor|) --- and the explicit sweep attains the floor: a
-    found solution carrying a machine-checked \emph{optimality proof}, with
-    \texttt{\#print axioms} reporting standard axioms only.
-  \item \textbf{Geometric routing (\S\ref{sec:routing}).} The matching hypothesis is
-    realized on real hardware graphs: the $b\cdot d$ depth cap is a gate-counting theorem,
-    and bond reachability is an explicit lightcone walk on 1D chains and 2D chips.
+    $\ge 2^{54}$ (\lstinline|sycamore53_cost_floor|), and the explicit sweep attains the
+    width floor: an exhibited solution carrying a machine-checked \emph{optimality proof},
+    with \texttt{\#print axioms} reporting standard axioms only. Gap-freeness is a
+    \emph{width} statement: the cost floor inherits the width floor's exponent, not the
+    sweep's step count, and the sweep's own total cost is $53^2\cdot 2^{54}$-scale
+    (\S\ref{sec:endtoend}). A companion theorem kept outside this conjunction records the
+    rank side: an explicit witness family built from the cross-cut matching (constant in
+    the gate parameters, identity bonds along the block-aligned matching) attains full rank
+    at the $53$-qubit cut, certifying the cut's entangling \emph{capability} only
+    (\lstinline|sycamore53_bond_floor| then bounds any crossing factorization of that
+    witness below $2^{53}$).
+  \item \textbf{Geometric routing scaffolding (\S\ref{sec:routing}).} Combinatorial
+    support for the matching hypothesis: the $b\cdot d$ depth cap is a counting theorem
+    about abstract gate schedules, and bond reachability is an explicit bounded-length
+    walk in the chain and chip \emph{coupling graphs}. No circuit-dynamics model is
+    formalized, and the rigidity witnesses of \S\ref{sec:endtoend} do not consume these
+    theorems: they scope, but do not discharge, the physical routing step.
 \end{itemize}
 
 %% ===================================================================
@@ -271,21 +307,22 @@ its widest intermediate tensor: an intermediate with $w$ open indices holds $2^w
 Markov and Shi~\cite{markov2008simulating} identified the optimal width over all orders with
 the treewidth of the network's line graph, which pins the complexity of the
 \emph{contraction paradigm} (including index slicing, which trades memory for time but not
-total work). Two caveats scope everything that follows. The paradigm bound is not an
-unconditional hardness claim: representations exploiting \emph{value} structure ---
-stabilizer states, decision diagrams~\cite{dd2025treewidth} --- can beat width on structured
+total work). The paradigm bound carries two caveats that scope everything below. It is not an
+unconditional hardness claim: representations exploiting \emph{value} structure
+(stabilizer states, decision diagrams~\cite{dd2025treewidth}) can beat width on structured
 instances, and shallow random 2D circuits are classically easy outright%
 ~\cite{napp2022efficient}. Our floors therefore live in the contraction paradigm, and
 \S\ref{sec:rigidity} shows that for \emph{generic} tensor entries even the value-structure
-escape is closed. Second, NP-hardness of TNCO is a statement about general networks; on
-planar grids the width is textbook-known --- which is precisely what will qualify the
+escape is closed for rigid parametric families at a cut (a separate companion certificate,
+never composed with the cost floor). Also, NP-hardness of TNCO is a statement about general networks; on
+planar grids the width is textbook-known, which is precisely what will qualify the
 lattice family as a \emph{calibration} class in \S\ref{sec:endtoend}.
 
 \subsection{Stem orders are path decompositions}
 The orders that dominate practice on supremacy-style circuits are
 \emph{stems}~\cite{huang2020classical}: a single growing tensor absorbs the network one
 piece at a time, exactly like a state vector swept through a circuit. In tree language the
-contraction tree is a caterpillar --- a spine with leaves. The combinatorial identity at
+contraction tree is a caterpillar: a spine with leaves. The combinatorial identity at
 the heart of this paper (Fig.~\ref{fig:stemsweep}) is that \textbf{a stem order is the same
 data as a path decomposition} of the network graph: the $t$-th bag $B_t$ is the boundary of
 the absorbed region after $t$ steps, the width of the order is the largest bag, and the
@@ -294,15 +331,6 @@ orders tractable today: pathwidth lower bounds rest on \emph{interval} Helly
 (\S\ref{sec:bramble}), a one-dimensional argument, where treewidth would need the subtree
 Helly property that Mathlib does not yet have.
 
-%% GEMINI-PROMPT (fallback):
-%% "Two-panel scientific diagram, vector style. Left panel: a 5x5 grid of small circles
-%%  connected by lines (a lattice tensor network); a bold dashed vertical-ish frontier line
-%%  separates a shaded 'absorbed' region on the left from the rest; the circles on the
-%%  frontier are highlighted orange and labeled 'bag B_t = boundary'. An arrow labeled
-%%  'sweep' points rightward. Right panel: a caterpillar tree: a horizontal bold path of 6
-%%  nodes (the spine), each spine node with one or two small leaf nodes hanging below;
-%%  caption inside: 'stem contraction tree'. Between panels a double arrow labeled 'same
-%%  data'. Minimal colors: gray network, orange bag, blue spine."
 \begin{figure}[t]
 \centering
 \begin{tikzpicture}[scale=0.52, font=\scriptsize]
@@ -353,11 +381,12 @@ For an $n$-qubit depth-$d$ lattice circuit the two canonical sweeps give cut siz
 (time sweep) and $\lfloor\sqrt{n}\rfloor\cdot d$ (space sweep), so the achievable width
 scale is $\mathrm{sweepCut}(n,d)=\min(n,\lfloor\sqrt{n}\rfloor d)$; at the Sycamore-53
 parameters $(n,d)=(53,20)$~\cite{arute2019quantum} this is $53$, and the folklore cost estimate
-$4\cdot 2^{53}\cdot 150 \approx 10^{18}$ is pure arithmetic that our development also
+$4\cdot 2^{53}\cdot 150 \approx 10^{18}$ (with the step count $150$ taken as an input
+from that folklore estimate, not derived) is pure arithmetic that our development also
 certifies (\lstinline|CorollaryD|). Throughout, ``Sycamore-53 scale'' refers to the cut
 value these parameters fix; the lattice we instantiate is the $53\times53$
 \emph{deep-window} spacetime grid of a wire chain, whose depth window ($53$ layers)
-exceeds the benchmark depth ($20$) --- \S\ref{sec:endtoend} states which certified
+exceeds the benchmark depth ($20$); \S\ref{sec:endtoend} states which certified
 conjunct speaks about which object.
 
 \subsection{Lean 4 and Mathlib}
@@ -365,7 +394,7 @@ The development is built on Lean~4 and Mathlib (both pinned at v4.30.0), using
 \lstinline|SimpleGraph| box products for lattices, \lstinline|Finset| combinatorics for
 brambles and transversals, and \lstinline|MvPolynomial| with matrix determinants for the
 genericity engine. The auditing interface is \texttt{\#print axioms}: every theorem cited in
-this paper reports \texttt{[propext, Classical.choice, Quot.sound]} --- no custom axiom
+this paper reports \texttt{[propext, Classical.choice, Quot.sound]}; no custom axiom
 exists anywhere in the library, and the one literature input we rely on
 ($\pw=\Theta(\tw)$ on lattices) appears as an explicit hypothesis \emph{inside} theorem
 statements, never as an ambient assumption.
@@ -374,8 +403,10 @@ statements, never as an ambient assumption.
 \section{The Formal Framework}\label{sec:framework}
 
 The development separates cleanly into a linear-algebra half and a combinatorial half, and
-the design decision that keeps both halves simple is that they meet at exactly one
-interface: the \emph{flattening of a tensor across a cut}.
+the design decision that keeps both halves simple is that neither imports the other's
+machinery: the linear-algebra half is organized around one interface, the
+\emph{flattening of a tensor across a cut}, which the combinatorial half never needs;
+the two halves meet only in the conjunction of \S\ref{sec:endtoend}.
 
 On the linear-algebra side, a tensor on legs $I$ is just an array indexed by one bit per
 leg, and a cut is a predicate $p$ on legs; flattening reshapes the tensor into a matrix
@@ -389,8 +420,8 @@ def flatten (T : QTensor I R) :
   Matrix.of fun a b => T ((cutEquiv p).symm (a, b))
 \end{lstlisting}
 
-The rank of this matrix is the Schmidt rank across the cut, and ``no rank collapse'' ---
-the property \S\ref{sec:rigidity} certifies --- is exactly nonsingularity of its square
+The rank of this matrix is the Schmidt rank across the cut, and ``no rank collapse''
+(the property \S\ref{sec:rigidity} certifies) is exactly nonsingularity of its square
 form at a balanced cut. One lemma does all the transport work: entrywise evaluation
 commutes with flattening (\lstinline|flatten_map|), so any genericity statement proved for
 polynomial entries descends to every concrete evaluation.
@@ -402,23 +433,26 @@ a type \lstinline|Order|, a derived \lstinline|width| per order, a predicate
 optimum is attained, and \emph{given} a bound $\pw \le C\cdot\cc$ there is a stem order
 within factor $C$ of optimal. The literature inputs are deliberately \emph{not} axioms:
 \lstinline|MarkovShi G| and \lstinline|LatticePathwidthBound G C| are named
-\lstinline|Prop|s that a caller must supply for the concrete model at hand --- and on the
-model of \S\ref{sec:model} the latter is discharged by computation, so no theorem in this
-paper carries an unproved ambient assumption.
+\lstinline|Prop|s that a caller must supply for the concrete model at hand. On the model of
+\S\ref{sec:model} the latter holds trivially (that model's order space contains only stem
+orders, so the bound compares an infimum with itself), and no theorem in this paper carries
+an unproved ambient assumption; the genuine tree-order content is precisely what that model
+cannot express (\S\ref{sec:limits}).
 
 %% ===================================================================
 \section{Contraction Rigidity}\label{sec:rigidity}
 
 A width floor certifies cost only if the widest intermediate tensor genuinely carries
-$2^w$ degrees of freedom. The literature treats this as an average-case question ---
-``Haar-random circuits have full-rank cuts with high probability'' --- and answers it with
-random-matrix analysis, which is both heavy and regime-fragile~\cite{napp2022efficient}.
+$2^w$ degrees of freedom. The literature treats this as an average-case question
+(``Haar-random circuits have full-rank cuts with high probability'') and answers it with
+random-matrix analysis, whose guarantees are moreover regime-sensitive: shallow random 2D
+circuits are classically easy outright~\cite{napp2022efficient}.
 We replace the probabilistic question with a structural one, and the answer becomes a
-two-line corollary of Schwartz--Zippel-style genericity.
+two-line corollary of one-point polynomial nonvanishing.
 
 Say a parameterized tensor family $T$ (entries are polynomials in the gate parameters) is
 \lstinline|BulkEntangling| at a balanced cut if \emph{some} parameter point makes the cut
-flattening nonsingular --- the architecture is \emph{capable} of full Schmidt rank. Say it
+flattening nonsingular: the architecture is \emph{capable} of full Schmidt rank. Say it
 is \lstinline|ContractionRigid| if the flattening's determinant is a nonzero polynomial and
 the flattening is nonsingular at every parameter outside that polynomial's vanishing set.
 The structural theorem is that capability upgrades to genericity:
@@ -430,10 +464,19 @@ theorem contraction_rigidity
     (h : BulkEntangling p e T) : ContractionRigid p e T
 \end{lstlisting}
 
-The engine is elementary: a determinant that is nonzero at one evaluation is a nonzero
-polynomial, and a nonzero polynomial vanishes only on a proper subvariety. No probability
-enters; the measure-zero corollary ($\Pr[\text{rank collapse}]=0$ for any continuous gate
-measure) is a one-step consequence we leave to future work.
+The engine is elementary (a determinant that is nonzero at one evaluation is a nonzero
+polynomial), and one bookkeeping fact should be stated plainly. Because evaluation commutes
+with determinants (\lstinline|det_squareFlatten_map|, an unconditional identity), the second
+clause of \lstinline|ContractionRigid| (nonsingularity at every parameter outside the
+vanishing set) holds for \emph{every} family once the first does, so
+\lstinline|ContractionRigid| is logically equivalent to its first clause alone: the
+flattening's determinant is a nonzero polynomial. The pointwise clause is kept in the
+definition because downstream consumers (\lstinline|no_compression| below) use it in exactly
+that form. Properness of the vanishing set (a nonempty complement, over an infinite field)
+is proved separately (\lstinline|exists_nonsingular_of_det_ne_zero|) and is not part of
+the certificate. No probability enters; the measure-zero corollary
+($\Pr[\text{rank collapse}]=0$ for any continuous gate measure) is a one-step consequence we
+leave to future work.
 
 What makes the theorem usable is that its hypothesis is \emph{combinatorial}
 (Fig.~\ref{fig:matching}). If the $k$ qubits on each side of the cut can be paired up by a
@@ -441,16 +484,22 @@ perfect matching whose pairs each carry a nonsingular two-qubit bond, then the f
 at the witness configuration is the Kronecker product of the bonds, and a product of
 nonsingular blocks is nonsingular (\lstinline|det_bondProd_ne_zero|, by induction with
 \lstinline|det_kronecker|). Checking \lstinline|BulkEntangling| for an architecture thus
-reduces to exhibiting a cross-cut matching --- a graph condition, discharged for hardware
-graphs in \S\ref{sec:routing}. The hypothesis is not vacuous for real gate sets: the
+reduces to exhibiting a cross-cut matching, a graph condition whose hardware-graph side
+\S\ref{sec:routing} scopes (without discharging the physical routing step). The hypothesis is not vacuous for real gate sets: the
 development proves $\det \neq 0$ for the standard library ($X, Y, Z, H, S, T, \sqrt{X},
 \mathrm{CZ}, \mathrm{SWAP}, \mathrm{CNOT}, \mathrm{iSWAP}, \mathrm{fSim}(\theta,\phi)$,
 \ldots), so identity bonds, Bell pairs, and Sycamore's native $\mathrm{fSim}$ all qualify.
+One boundary must be drawn precisely: the theorem constrains a \emph{given} family $T$ (the
+tensors of a fixed circuit). The bare existential $\exists T$ used in the companion
+capability theorem of
+\S\ref{sec:endtoend} is, by contrast, discharged at \emph{any} balanced cut by the Bell
+witness, so it certifies cut-size capability only and never a property of a particular
+architecture.
 
-\paragraph{From rank to cost: the no-compression theorem.}
-Rigidity is welded to the cost story by a final step. If the cut flattening $M$ factors as
-$M = A\cdot B$ through an inner index set of size $r$ --- an MPS-style bond, a
-decision-diagram node cut, any rank-revealing compression --- then $r$ bounds the rank of
+\paragraph{From rank to compression: the no-compression theorem.}
+Rigidity complements the cost story with a final, self-standing step. If the cut flattening $M$ factors as
+$M = A\cdot B$ through an inner index set of size $r$ (an MPS-style bond, a
+decision-diagram node cut, any rank-revealing compression), then $r$ bounds the rank of
 $M$ from above. Formally, for a rigid family and any parameter outside the vanishing set:
 
 \begin{lstlisting}
@@ -460,19 +509,17 @@ theorem ContractionRigid.no_compression ... :
 \end{lstlisting}
 
 \noindent (proved via injectivity of \lstinline|M.mulVec| and monotonicity of
-\lstinline|finrank| under injections). Generically, therefore, \emph{no} representation
-crosses the cut with inner dimension below $2^k$: the decision-diagram escape hatch is
-closed except on a measure-zero set of instances. Structured instances --- stabilizer
-circuits, genuinely low-rank tensors --- live inside that measure-zero set and can beat the
-floor; that is the correct semantics for a generic-instance certificate, not a defect.
+\lstinline|finrank| under injections). For a rigid parametric family, therefore, \emph{no}
+representation crosses the cut with inner dimension below $2^k$ outside the vanishing set of
+one nonzero polynomial (measure zero for any continuous gate measure, a reading we state
+but do not formalize, \S\ref{sec:limits}). Structured instances (stabilizer
+circuits, genuinely low-rank tensors) live inside that vanishing set and can beat the
+floor; that is the intended semantics of a generic-instance certificate. One
+scope note: \lstinline|no_compression| speaks about a parametric tensor family at a cut; no
+theorem links it to the \lstinline|orderCost| of \S\ref{sec:model}. The compression floor
+and the cost floor are certified as \emph{separate} theorems in \S\ref{sec:endtoend};
+neither composes with the other.
 
-%% GEMINI-PROMPT (fallback):
-%% "Schematic diagram, vector style: two columns of 4 qubits each (circles labeled L1..L4
-%%  and R1..R4), separated by a vertical dashed line labeled 'cut'. Each pair (Lj, Rj) is
-%%  connected by a bold edge labeled 'B_j, det != 0' (a two-qubit entangling bond). Below,
-%%  an equation-style annotation: 'flattening = B_1 (x) B_2 (x) B_3 (x) B_4, full rank 2^4'.
-%%  A side note: 'one full-rank configuration => full rank for all generic parameters
-%%  (Schwartz-Zippel)'. Minimal colors: blue bonds, gray qubits."
 \begin{figure}[t]
 \centering
 \begin{tikzpicture}[scale=0.75, font=\small]
@@ -490,12 +537,12 @@ floor; that is the correct semantics for a generic-instance certificate, not a d
   \node[align=left, anchor=west] at (4.6,0.8)
     {$\Rightarrow$ Schmidt rank $2^{k}$ at \emph{one} point};
   \node[align=left, anchor=west] at (4.6,0.0)
-    {$\Rightarrow$ full rank \emph{generically} (SZ)};
+    {$\Rightarrow$ full rank \emph{generically}};
 \end{tikzpicture}
 \caption{Kronecker routing reduces the rigidity hypothesis to combinatorics: a cross-cut
 perfect matching with nonsingular bonds makes the cut flattening a Kronecker product, hence
-full rank at one gate configuration --- and Schwartz--Zippel upgrades one point to all
-generic parameters. No probability enters.}
+full rank at one gate configuration, and a one-point evaluation argument upgrades that
+single point to all generic parameters. No probability enters.}
 \label{fig:matching}
 \end{figure}
 
@@ -503,8 +550,8 @@ generic parameters. No probability enters.}
 \section{Stem Width via Interval Helly}\label{sec:bramble}
 
 The width floor is a pathwidth lower bound, and its formal interface is deliberately
-minimal. A candidate stem order is a \lstinline|LinearBags| --- a finite sequence of bags
---- together with the three defining axioms of a path decomposition: each vertex's bags
+minimal. A candidate stem order is a \lstinline|LinearBags| (a finite sequence of bags)
+together with the three defining axioms of a path decomposition: each vertex's bags
 form a contiguous interval (\lstinline|vint|), every edge lies in some bag
 (\lstinline|edge|), and every vertex is covered (\lstinline|cov|). Everything a floor needs
 is derived from these three.
@@ -516,30 +563,22 @@ order. The proof (Fig.~\ref{fig:helly}) is where the pathwidth restriction pays 
 Connectivity plus the edge-cover axiom forces each block to meet the bags along a
 contiguous \emph{interval} of indices (\lstinline|bag_meets_betweenness|, an induction on
 walks); pairwise touching forces those intervals to pairwise overlap; and pairwise
-overlapping intervals share a common point --- the interval Helly property, whose whole
+overlapping intervals share a common point: the interval Helly property, whose whole
 proof is ``take the largest left endpoint''
 (\lstinline|interval_helly|, six lines). The bag at the common index meets every block, so
 it is a transversal, and its size bounds the order. For treewidth the same argument needs
 the Helly property of subtrees, which Mathlib does not have; for pathwidth the
-one-dimensional case suffices, and that is why certified stem floors are available
-\emph{today}.
+one-dimensional case suffices, which is what puts certified stem floors within reach of
+current Mathlib.
 
 Two refinements make the bound usable beyond toy brambles. First, blocks may
-\emph{touch without intersecting} --- the genuine bramble condition allows adjacency ---
+\emph{touch without intersecting} (the genuine bramble condition allows adjacency),
 and then the shared index comes from the edge-cover axiom rather than a shared vertex
 (\lstinline|pathwidth_ge_order_of_touching|). Second, the whole development is indexed by
 an arbitrary finite type, so structured brambles (\S\ref{sec:exact}) index naturally.
-Instantiating with the elementary \emph{crosses} bramble --- block $i$ is row $i$ united
-with column $i$, connected in the genuine grid graph via box-product walk embeddings ---
+Instantiating with the elementary \emph{crosses} bramble (block $i$ is row $i$ united
+with column $i$, connected in the genuine grid graph via box-product walk embeddings)
 already yields a fully unconditional $\Theta(k)$ floor:
-%% GEMINI-PROMPT (fallback):
-%% "Diagram, vector style: a horizontal row of 8 rectangles labeled B1..B8 (bags of a path
-%%  decomposition). Above them, three horizontal colored bars (blue, orange, green) at
-%%  different heights, each spanning a contiguous range of bags (blue spans B2-B6, orange
-%%  B4-B8, green B1-B5). All three bars overlap around B4-B5. A vertical dashed line drops
-%%  through bag B5, labeled 'common bag: meets every block (interval Helly)'. Caption
-%%  concept: connected blocks occupy bag-intervals; pairwise touching makes intervals
-%%  pairwise overlap; Helly for intervals yields one bag hitting all blocks."
 \begin{figure}[t]
 \centering
 \begin{tikzpicture}[scale=0.72, font=\scriptsize]
@@ -564,7 +603,8 @@ already yields a fully unconditional $\Theta(k)$ floor:
 decomposition along a contiguous \emph{interval} of indices; pairwise-touching blocks give
 pairwise-overlapping intervals; interval Helly (the maximal left endpoint) produces one bag
 meeting all blocks, so the largest bag is at least the bramble's transversal order. Only
-one-dimensional Helly is needed --- this is why stem-order floors are formalizable today.}
+one-dimensional Helly is needed, which is what makes stem-order floors formalizable with
+current Mathlib.}
 \label{fig:helly}
 \end{figure}
 
@@ -580,32 +620,23 @@ theorem grid_pathwidth_lower_unconditional (k : ℕ) (hk : 0 < k)
 
 For asymptotics, $\Theta(k)$ is the end of the story; for a \emph{yardstick} it is not.
 A floor of $k/2$ against a sweep of $k+1$ certifies only ``within a factor two in the
-exponent'' --- a weak certificate, and an unnecessary one, because the slack is entirely in
+exponent'', a weak certificate, and an unnecessary one, because the slack is entirely in
 the bramble. The crosses bramble genuinely has order $\lceil k/2\rceil$: one vertex
 $(i,j)$ hits two crosses at once. Closing the gap needs a better dual witness, the
 augmented bramble in the style of Seymour and Thomas~\cite{seymour1993graph}
 (Fig.~\ref{fig:augmented}): on the $(k{+}1)\times(k{+}1)$ grid, take the $k^2$ crosses of
 the $k\times k$ subgrid, plus the last row, plus the last column minus the corner.
 
-Three formalization points deserve note. First, the boundary blocks are \emph{disjoint}
-from every cross --- they only touch through edges --- which is exactly what the
-touching-bramble bound of \S\ref{sec:bramble} was built for. Second, connectivity of the
+The boundary blocks are \emph{disjoint}
+from every cross (they only touch through edges), which is exactly what the
+touching-bramble bound of \S\ref{sec:bramble} was built for. Connectivity of the
 subgrid crosses needs walks that do not overshoot the subgrid; we build ascending chain
-walks with explicit support bounds and route both arms to the cross centre. Third, the
+walks with explicit support bounds and route both arms to the cross centre. And the
 transversal count is the classical ``miss a row and miss a column'' argument, formalized by
 projections: a transversal must contain a last-row vertex and a last-column vertex (two
 distinct vertices no cross contains), and its subgrid part must cover all $k$ subgrid rows
-or all $k$ subgrid columns --- otherwise some cross $(i_0, j_0)$ is unhit --- so the order
+or all $k$ subgrid columns (otherwise some cross $(i_0, j_0)$ is unhit), so the order
 is at least $k+2$:
-%% GEMINI-PROMPT (fallback):
-%% "Diagram of a 6x6 grid of circles (a (k+1)x(k+1) lattice with k=5). The top-left 5x5
-%%  subgrid is tinted light blue. One sample 'cross' inside the subgrid is highlighted:
-%%  all circles of subgrid-row i and subgrid-column j in saturated blue, meeting at (i,j).
-%%  The entire last row is red. The last column except its bottom-right corner is green.
-%%  Two short zigzag marks highlight edges where blue touches red and blue touches green
-%%  (adjacent but disjoint blocks). Side annotation: 'transversal must contain: 1 red +
-%%  1 green + (k) blue-region vertices, else some row i0 AND column j0 are both missed and
-%%  cross (i0,j0) is unhit => order >= k+2'."
 \begin{figure}[t]
 \centering
 \begin{tikzpicture}[scale=0.62, font=\scriptsize]
@@ -639,8 +670,8 @@ is at least $k+2$:
 (blue), the last row (red), and the last column minus the corner (green). Boundary blocks
 touch the crosses only through edges, which the touching-bramble bound
 (\lstinline|pathwidth_ge_order_of_touching|) handles via the edge-cover axiom. Counting: a
-transversal needs one red, one green, and $k$ subgrid vertices --- otherwise some row $i_0$
-\emph{and} some column $j_0$ are missed and cross $(i_0,j_0)$ is unhit --- so the order is
+transversal needs one red, one green, and $k$ subgrid vertices (otherwise some row $i_0$
+\emph{and} some column $j_0$ are missed and cross $(i_0,j_0)$ is unhit), so the order is
 $\ge k+2$, meeting the sweep exactly.}
 \label{fig:augmented}
 \end{figure}
@@ -653,26 +684,22 @@ theorem grid_pathwidth_exact (k : ℕ) (hk : 0 < k)
 \end{lstlisting}
 
 \noindent This meets the sliding-window sweep of \S\ref{sec:model} exactly: the grid stem
-optimum is \emph{pinned}, not bracketed.
+optimum is pinned exactly rather than bracketed asymptotically.
 
 %% ===================================================================
 \section{A Faithful Circuit Model}\label{sec:model}
 
 A floor is only as meaningful as the order space it quantifies over, and formalizations are
 most vulnerable exactly here: it is easy to prove strong statements about a model that
-postulates its own numbers. Our first model did --- a single abstract order with constant
-width --- and we report that dead end because its repair is the methodological point: in
-the final model \textbf{nothing is postulated}. An order \emph{is} a path decomposition of
+postulates its own numbers. Our first model did (a single abstract order with constant
+width), and we report that dead end because its repair is the methodological point: in
+the final model \textbf{no width or cost number is postulated} (two inert record fields,
+\lstinline|tw| and \lstinline|IsLattice|, remain for interface compatibility and are
+consumed by no theorem cited in this paper). An order \emph{is} a path decomposition of
 the genuine grid graph (the three axioms of \S\ref{sec:bramble}, bundled as
 \lstinline|IsPathDecomp|), its width \emph{is} its largest bag, and its cost \emph{is} the
 total size of the boundary tensors it materializes,
 $\mathrm{cost}(o)=\sum_t 2^{|B_t|}$ (\lstinline|orderCost|).
-%% GEMINI-PROMPT (fallback):
-%% "Diagram: a 5x5 grid of circles with small numbers 0..24 written column-major (down each
-%%  column then next column). Circles with numbers < 8 are filled gray ('absorbed'). Circles
-%%  numbered 8..13 have bold orange rings ('window = bag, k+1 = 6 vertices'). Circles > 13
-%%  are white ('future'). A legend below. Concept: sweeping vertices in column-major order;
-%%  the bag at step t is the sliding window of positions [t, t+k]."
 \begin{figure}[t]
 \centering
 \begin{tikzpicture}[scale=0.62, font=\tiny]
@@ -702,7 +729,7 @@ $\mathrm{cost}(o)=\sum_t 2^{|B_t|}$ (\lstinline|orderCost|).
 \end{tikzpicture}
 \caption{The sliding-window sweep (\texttt{sweepBags}, shown at $t=8$ on the $5\times5$
 grid): vertices are absorbed in column-major position order; the bag at step $t$ is the
-window of positions $[t, t+k]$ --- the live frontier plus the vertex being absorbed. Each
+window of positions $[t, t+k]$, the live frontier plus the vertex being absorbed. Each
 window holds at most $k+1$ vertices, realizing the textbook grid pathwidth and meeting the
 floor of Fig.~\ref{fig:augmented}.}
 \label{fig:window}
@@ -724,7 +751,7 @@ hypothesis where used.
 The floor is \S\ref{sec:exact}'s theorem, now speaking about every order of the model. The
 matching upper bound is the explicit sliding-window sweep (Fig.~\ref{fig:window}): absorb
 vertices in column-major position order and let the bag at step $t$ be the window of
-positions $[t, t+k]$ --- the live frontier plus the vertex being absorbed. The window
+positions $[t, t+k]$, the live frontier plus the vertex being absorbed. The window
 satisfies all three decomposition axioms (the interval property is arithmetic on positions;
 every grid edge spans a position difference of $1$ or $k$, so the window at the smaller
 endpoint covers it) and holds at most $k+1$ vertices, positions being injective. Floor and
@@ -740,18 +767,22 @@ theorem gridModel_cost_floor (N : ℕ) (hN : 2 ≤ N)
 \end{lstlisting}
 
 \noindent The optimum is moreover \emph{attained} (via \lstinline|Nat.sInf_mem|), and
-\lstinline|LatticePathwidthBound (gridModel N) 1| holds by construction, so every
-hypothesis-form theorem of \S\ref{sec:framework} is discharged on this model by
-computation --- the axiom footprint stays at exactly the three standard axioms.
+\lstinline|LatticePathwidthBound (gridModel N) 1| holds by construction (trivially so,
+since this order space contains only stems, \S\ref{sec:framework}), so every
+hypothesis-form theorem of \S\ref{sec:framework} applies to this model with no residual
+hypothesis (the genuine tree-order content stays untouched as the literature input of
+\S\ref{sec:limits}), and the axiom footprint stays at exactly the three standard axioms.
 
 %% ===================================================================
-\section{Case Study: a Gap-Free Certified Benchmark Instance}\label{sec:endtoend}
+\section{Case Study: a Benchmark Instance Certified Gap-Free in Width}\label{sec:endtoend}
 
 Why calibrate on a lattice? Precisely because lattices are \emph{not} the hard case: their
-widths are textbook-known, so they are the one instance family where a yardstick's reading
-can be checked against independent truth. Ours reads exactly right. Instantiating the model
-at the Sycamore-53 cut scale ($N = 53$; the deep-window spacetime grid of a 53-wire chain),
-one theorem conjoins the whole certificate:
+widths are textbook-known, so they are the one instance family where the yardstick's reading
+can be checked against independent truth. Instantiating the model at $N = 53$ (the
+deep-window spacetime grid of a 53-wire chain), one theorem conjoins the whole certificate.
+The instance's only tie to the Sycamore-53 benchmark is the shared cut value $53$ fixed by
+conjunct~(i) below; the Lean prefix \lstinline|sycamore53| names this calibration instance,
+not the physical device:
 
 \begin{lstlisting}
 theorem sycamore53_lower_bound :
@@ -762,36 +793,58 @@ theorem sycamore53_lower_bound :
       (∃ o, sycamore53.IsStem o ∧
         sycamore53.width o = sycamore53.cc) ∧
       (∀ o : sycamore53.Order,
-        2 ^ 54 ≤ GridModel.orderCost o)) ∧
-    (∃ e T, ContractionRigid leftBlock e T)
+        2 ^ 54 ≤ GridModel.orderCost o))
 \end{lstlisting}
 
-Read as a certificate, the four conjuncts say: (i)~the sweep-cut arithmetic behind the
+Read as a certificate, the three conjuncts say: (i)~the sweep-cut arithmetic behind the
 folklore $10^{18}$ estimate is exact; (ii)~the optimum over \emph{all} stem orders of the
-real spacetime grid is $54$ --- the floor of \S\ref{sec:exact} meets the sweep of
-\S\ref{sec:model}, so the sweep is a found solution carrying a machine-checked
-\emph{optimality proof}; (iii)~every order pays total cost at least $2^{54}$; and (iv)~there \emph{exists} a
-witness tensor family, built from the cross-cut matching, that is contraction rigid at the
-$53$-qubit cut --- for that family, \lstinline|no_compression| yields that generically no
-factorization with inner dimension below $2^{53}$ crosses the cut
-(\lstinline|sycamore53_bond_floor|). Conjunct (iv) is an existence statement about the
-cut's entangling capacity, not a rank claim about any specific benchmark circuit.
+model's spacetime grid graph is $54$ (the floor of \S\ref{sec:exact} meets the sweep of
+\S\ref{sec:model}), so the sweep is an exhibited solution carrying a machine-checked
+\emph{optimality proof}; (iii)~every order pays total cost at least $2^{54}$.
 \texttt{\#print axioms} on the theorem reports
 \texttt{[propext, Classical.choice, Quot.sound]}.
 
-Fidelity scope, stated plainly: the four conjuncts do not all speak about one physical
-object. Conjuncts (i)--(ii) are arithmetic at the benchmark parameters $(53,20)$, whose
+\paragraph{The rank-side companion.} The rank side is deliberately \emph{not} a conjunct of
+this theorem: its logical content is thinner than the conjuncts above, and folding it into
+the headline conjunction would let it borrow their weight. A companion theorem
+(\lstinline|sycamore53_bond_floor|) exhibits a witness tensor family, built from the
+cross-cut matching, that is contraction rigid at the $53$-qubit cut; for that family,
+\lstinline|no_compression| yields that no factorization with inner dimension below $2^{53}$
+crosses the cut. This is an existence statement about the cut's entangling capacity, not a
+rank claim about any specific benchmark circuit; the witness family is \emph{constant} in
+the gate parameters (identity bonds along the block-aligned matching), so its
+\lstinline|ContractionRigid| holds with an empty exceptional set. Stronger still: the
+existential is discharged by a Bell-type witness that exists at \emph{every} balanced cut
+of \emph{every} index type, so the companion carries no information specific to this
+instance beyond the cut size $53$. What it certifies is \emph{capability} at that size; the
+generic quantifier does no additional work on this witness, and the substantive rigidity
+statement remains the framework theorem for a \emph{given} circuit family
+(\S\ref{sec:rigidity}).
+
+Fidelity scope. The three conjuncts and the rank-side companion do not all speak about one
+physical object. Conjuncts (i)--(ii) are arithmetic at the benchmark parameters $(53,20)$, whose
 cut value $53$ arises from the \emph{two-dimensional chip} geometry
 ($\lfloor\sqrt{n}\rfloor$ cross-cut gates per layer). Conjunct (iii) certifies the
-$53\times53$ spacetime grid of a \emph{wire chain} --- a deep window of $53$ layers,
-exceeding the benchmark depth $20$; at depth $20$ a wire chain's spacetime grid is
+$53\times53$ spacetime grid of a \emph{wire chain}: a deep window of $53$ layers,
+exceeding the benchmark depth $20$. At depth $20$ a wire chain's spacetime grid is
 $53\times20$, its stem scale is governed by the depth ($\approx 21$), and by the
-saturation criterion of \S\ref{sec:routing} it lies below the deep-regime threshold. What
+saturation criterion of \S\ref{sec:routing} it lies below the deep-regime threshold. A
+further modeling step sits underneath (iii): the certified graph is the full $53\times53$
+grid graph (the box product of two paths), a proxy geometry for the sparser gate-level
+network graph of a depth-$53$ brickwork chain --- the two agree at the $\Theta$ scale but
+can differ by constants, and only the grid graph is what the theorem quantifies over. What
 (iii) certifies is thus the deep-regime \emph{calibration} instance at the Sycamore-53 cut
-scale --- not the $(53,20)$ chain and not the $(2{+}1)$-dimensional lattice of the
-physical chip. Conjunct (iv) is \emph{generic}: the concrete Sycamore circuit draws its
-single-qubit gates from a discrete set, which a proper-subvariety statement does not cover
---- the certificate makes no rank claim about that specific instance. The matching side of
+scale, not the $(53,20)$ chain and not the $(2{+}1)$-dimensional lattice of the
+physical chip. The two cost readings are likewise distinct measures and do not reconcile
+numerically: conjunct~(ii) prices $150$ folklore stem steps in bond semantics
+($4\cdot 2^{53}\cdot 150 \approx 5\times 10^{18}$), while conjunct~(iii)'s
+\lstinline|orderCost| charges each of the model's $53^2 = 2809$ bag steps $2^{|B_t|}$
+entries, so the explicit sweep's own \lstinline|orderCost| is on the order of
+$53^2\cdot 2^{54} \approx 5\times 10^{19}$, outside conjunct~(ii)'s window. Neither
+number bounds the other's object, and a claim made in one semantics must not be read in the
+other. The companion capability theorem is stated in generic form: the concrete Sycamore circuit draws its
+single-qubit gates from a discrete set, which a vanishing-set (generic) statement does not
+cover: the certificate makes no rank claim about that specific instance. The matching side of
 the certificate already covers two-dimensional chips (\S\ref{sec:routing}); the
 chip-lattice width floor is future work (\S\ref{sec:limits}), and nothing in this section
 depends on it.
@@ -799,34 +852,30 @@ depends on it.
 %% ===================================================================
 \section{Empirical Demonstration: Reading the Yardstick}\label{sec:empirical}
 
-The yardstick is only interesting if someone holds it against a real search, so we did.
+We held the yardstick against a real search.
 For each $N$ in a sweep up to the benchmark scale we built the closed $N\times N$ grid
 tensor network (all bond dimensions $2$) and ran cotengra's
 hyper-optimizer~\cite{gray2021hyper} (v0.7.1, \texttt{minimize=size}, $128$ repeats per
 instance, single CPU node, $\sim$22 minutes total; a budget-sensitivity rerun of the
 drift instances at $512$ and $4096$ repeats is reported below), recording the best found
-contraction width --- $\log_2$ of the largest intermediate --- and comparing it against the certified
-stem scale $N+1$ (Fig.~\ref{fig:gapplot}). One semantic note keeps the comparison honest:
+contraction width ($\log_2$ of the largest intermediate) and comparing it against the certified
+stem scale $N+1$ (Fig.~\ref{fig:gapplot}). One semantic note scopes the comparison:
 the found orders are \emph{trees} measured in \emph{bond} count, while the certified floor
 is a statement about \emph{stem} orders in \emph{vertex-bag} semantics, and the two
-measures agree only up to an additive unit --- a vertex-by-vertex frontier carries the one
-extra bond of the vertex being absorbed, which a tree merge can pre-contract away. Claims
+measures agree only up to an additive unit: a vertex-by-vertex frontier carries the one
+extra bond of the vertex being absorbed, which a tree merge can pre-contract away.
+(Concretely, on the closed grid: mid-column the sweep's intermediate exposes the $N$
+cross-column bonds plus the one intra-column bond at the absorption point, so its bond
+width is $N{+}1$, matching the bag count; pre-contracting the entering vertex is worth
+exactly that one unit.) Claims
 at $\pm 1$ granularity \emph{across} the two semantics are therefore not licensed by our
 theorems; what the theory predicts is $|\text{found} - (N{+}1)| \le 1 + \text{search
-slack}$. The prediction has teeth because on lattices trees should gain nothing
+slack}$. The prediction is a genuine test because on lattices trees should gain nothing
 substantial over stems at all: $\pw = \tw$ on grids is exactly the content of the
 stem-existence thesis (the explicitly-carried hypothesis of \S\ref{sec:limits}), so a
 search that is free to return \emph{arbitrary} trees ought to land within one conversion
-unit of the stem line --- and never substantially below it.
+unit of the stem line, and never substantially below it.
 
-%% GEMINI-PROMPT (fallback):
-%% "A clean scatter plot, vector style. X axis: 'grid size N' from 6 to 53. Y axis:
-%%  'found width minus certified stem scale (N+1)', integer ticks -1, 0, +1, +2. A thick
-%%  red horizontal line at y=0 labeled 'certified stem scale N+1 (Lean theorem)'. Blue dots
-%%  at: (6,-1),(8,0),(10,0),(12,0),(16,0),(20,0),(24,0),(28,0),(32,1),(36,2),(40,-1),
-%%  (44,1),(48,0),(53,2). Annotation near (40,-1): 'tree orders may shave one unit (pw vs
-%%  tw)'. Annotation near (36,2): 'search variance -- invisible without an absolute
-%%  reference'."
 \begin{figure}[t]
 \centering
 \begin{tikzpicture}[font=\scriptsize, xscale=0.145, yscale=0.62]
@@ -856,33 +905,34 @@ unit of the stem line --- and never substantially below it.
 \caption{Found contraction width minus the certified stem scale $N+1$, over the grid
 family (cotengra hyper-optimizer, $128$ repeats per instance, \emph{unrestricted tree}
 orders). Every point lands in $[-1, +2]$: eight of fourteen coincide numerically with the
-certified scale, two sit at $-1$ (inside the one-unit bag-vs-bond conversion allowance ---
-not below the stem thesis), and four drift $+1$/$+2$ above --- a quality deficit that
+certified scale, two sit at $-1$ (inside the one-unit bag-vs-bond conversion allowance,
+not below the stem thesis), and four drift $+1$/$+2$ above: a quality deficit that
 relative benchmarking cannot detect and the yardstick reads off immediately.}
 \label{fig:gapplot}
 \end{figure}
 
-The data lands in three regimes, each doing narrative work. First, the stem-existence
-thesis is checked in the wild: an unrestricted tree search, free to return any contraction
+The data falls into three regimes. In the first, the data is consistent with the
+stem-existence thesis: an unrestricted tree search, free to return any contraction
 tree whatsoever, \emph{never} beats the stem line by more than the one-unit semantics
-allowance --- exactly what ``optimal contraction of lattice networks can be taken
+allowance, exactly what ``optimal contraction of lattice networks can be taken
 stem-shaped'' predicts, and the two $-1$ points are the conversion residue, not a
-refutation. Second, for $8 \le N \le 28$ the found width coincides numerically with the certified
-scale --- agreement at the granularity the two semantics license ($\pm 1$), and to our
+refutation. In the second regime, on eight instances ($8 \le N \le 28$, and again at
+$N = 48$), the found width coincides numerically with the certified
+scale: agreement at the granularity the two semantics license ($\pm 1$), and to our
 knowledge the first time heuristic contraction orders come with an absolute confirmation
 of their scale rather than a comparison to other heuristics.
-Third, at $N \in \{32, 36, 44, 53\}$ the fixed-budget search ($128$ repeats ---
+In the third, at $N \in \{32, 36, 44, 53\}$, the fixed-budget search ($128$ repeats,
 deliberately modest; production settings run orders of magnitude more) drifts $+1$ to $+2$
-\emph{above} the scale --- at $N=36$ the returned order is a factor $4$ in tensor size
+\emph{above} the scale: at $N=36$ the returned order is a factor $4$ in tensor size
 away from what the certified line says is achievable, and nothing in a relative-only
 methodology would ever flag it. The drift measures search quality \emph{at this budget},
-not the hyper-optimizer's limit behavior --- and the yardstick makes the follow-up
+not the hyper-optimizer's limit behavior. The yardstick makes the follow-up
 question quantitative, so we asked it: rerunning the drift points at $512$ and $4096$
 repeats, every found width returns to within the conversion allowance of the certified
 line ($N \in \{32, 44\}$: gap $0$ at $512$; $N=36$: $-1$; $N=53$: $+1$ at $512$ and
-exactly $54 = N+1$ at $4096$), and no point ever crosses below it. The certified scale is
-the \emph{attractor} of the search as budget grows --- approached from above, never
-crossed. That last regime is the yardstick's raison d'\^etre in one sentence.
+exactly $54 = N+1$ at $4096$), and no point ever falls below the lower edge of that
+allowance. As the budget grows, the found widths converge into the conversion allowance
+around the certified scale and never fall below its lower edge.
 
 \paragraph{From calibration grids to RQC architectures.}
 The grid family calibrates the yardstick; random-quantum-circuit \emph{architectures} are
@@ -892,17 +942,22 @@ two-qubit gate): 1D brickwork chains in the deep regime ($L = 2n$ layers), a dep
 transition at fixed $n=24$, and 2D chips with the Sycamore-style ABCD coupler
 pattern~\cite{arute2019quantum}. Contraction width depends only on the network graph, so
 these are exactly the graphs of random circuits; for each instance we also \emph{exhibit}
-two genuine stem orders --- the time sweep and the space sweep --- and compute their exact
+two genuine stem orders (the time sweep and the space sweep) and compute their exact
 widths, making the comparison ``free tree search vs.\ the stem the theory prescribes''
 (Table~\ref{tab:rqc}).
 
 \begin{table}[t]
 \caption{RQC architectures: best found tree width vs.\ the better of the two exhibited stem
-sweeps ($128$ repeats per instance). The stem thesis is a \emph{deep-regime} claim --- its
-formal precondition is that the entanglement lightcone spans all qubits
-(\lstinline|routedBonds| $= \min(n, b\cdot d)$ saturating at $n$, \S\ref{sec:routing});
-shallow rows lie \emph{outside that domain} and are shown only to trace where the regime
-begins.}
+sweeps ($128$ repeats per instance). Unlike the grid family of Fig.~\ref{fig:gapplot}, the
+``stem'' column here is an \emph{exhibited upper bound}, not a certified floor: no
+chip-lattice width floor is formalized (\S\ref{sec:limits}), so the 2D rows compare search
+quality against a concrete stem, not against a theorem. The stem thesis is a
+\emph{deep-regime} claim: its
+domain is where the entanglement lightcone spans all qubits, i.e.\ where the routable bond
+count (pinned at $\min(n, b\cdot d)$ by the schedule-counting theorems
+\lstinline|routed_card_le| and \lstinline|exists_schedule_routed_card|,
+\S\ref{sec:routing}) saturates at $n$; shallow rows lie \emph{outside that domain} and
+are shown only to trace where the regime begins.}
 \label{tab:rqc}
 \centering\small
 \begin{tabular}{llrl}
@@ -919,33 +974,34 @@ family & instances & stem & found $-$ stem \\
 \end{tabular}
 \end{table}
 
-Three observations. First, \textbf{across all twenty-five deep-regime instances no found
-tree beats an exhibited stem} --- the stem thesis, checked on genuine RQC graphs, exactly
+Across all twenty-five deep-regime instances, \textbf{no found
+tree beats an exhibited stem}: the stem thesis, tested on genuine RQC graphs, exactly
 on its stated domain. The domain matters physically and formally: below threshold the
 entanglement lightcone has not yet connected all qubits, the cut is governed by the
-lightcone width rather than by $n$, and neither the floor nor the thesis is being tested
---- this is Napp's simulable phase~\cite{napp2022efficient}, and its boundary is the
-machine-checked saturation condition of \S\ref{sec:routing} (\lstinline|bond_causal|: the
-$i$-th cross-cut pair is reachable iff $i < d$). The shallow entries at $-2$ sit outside
+lightcone width rather than by $n$, and neither the floor nor the thesis is being tested.
+This is Napp's simulable phase~\cite{napp2022efficient}, and its boundary is marked by
+the lightcone-walk theorem of \S\ref{sec:routing} (\lstinline|bond_causal|: an explicit walk
+certifies that the $i$-th cross-cut pair is reachable whenever $i < d$; the converse
+direction is not formalized). The shallow entries at $-2$ sit outside
 the domain and, secondarily, measure the slack of our two canonical witnesses there.
-Second, the $n{=}24$ depth sweep traces the entry into the deep regime cleanly: the
+Next, the $n{=}24$ depth sweep traces the entry into the deep regime cleanly: the
 crossover sits exactly where the space sweep overtakes the time sweep
 ($L \approx 26 \approx n$), i.e.\ where the lightcone first spans the chain; and once
-saturated the stem scale is depth-independent --- doubling $L{=}2n$ to $3n$ leaves the
-stem at $n$ while the search drifts further. Third --- the sharpest finding --- on the
+saturated the stem scale is depth-independent: doubling $L{=}2n$ to $3n$ leaves the
+stem at $n$ while the search drifts further. Finally, on the
 Sycamore-class 2D architectures the free search returns trees $+2$ to $+17$ units
 \emph{above} the trivial time-sweep stem, and the deficit \emph{grows with scale}: at
 $7{\times}7$ chips ($49$ qubits, the Sycamore-53 size class) the returned order
 materializes tensors $2^{17} \approx 10^{5}\times$ larger than the stem that theory hands
-over for free. On supremacy-class architectures the searcher does not merely fail to beat
-the stem --- it fails to \emph{find} it, and the deficit grows exactly where the instances
-matter most. Nor do larger budgets rescue it: at $512$ and $4096$ repeats ($4\times$ and
+over for free. On supremacy-class architectures the searcher fails to \emph{find} the
+stem, and the deficit is largest at the very scales the
+benchmark targets. Nor do larger budgets rescue it: at $512$ and $4096$ repeats ($4\times$ and
 $32\times$) the deficit shrinks only to $+10$ and then $+6$ on the $6{\times}6$ chip, and
-to $+16$/$+10$ on the $7{\times}7$, $12$-cycle instance --- still $2^{6}$--$2^{10}$ times
+to $+16$/$+10$ on the $7{\times}7$, $12$-cycle instance, still $2^{6}$--$2^{10}$ times
 the stem's tensor size after a $32\times$ budget increase, closing at roughly four width
-units per $8\times$ budget. A stem the theory hands over for free is a floor the search
-approaches only logarithmically in budget --- the strongest practical argument for
-certified stem-aware ordering that we know.
+units per $8\times$ budget. In budget terms, the search closes on a stem that the theory
+supplies for free only logarithmically --- a direct practical argument for certified
+stem-aware ordering.
 
 %% ===================================================================
 \section{Geometric Routing: Brickwork and Lightcones}\label{sec:routing}
@@ -953,21 +1009,26 @@ certified stem-aware ordering that we know.
 The rigidity certificate of \S\ref{sec:rigidity} consumes a cross-cut matching, and a
 skeptic should ask whether real hardware ever supplies one of the required size. The
 development answers with two combinatorial theorems about brickwork circuits, keeping the
-physics out of the trusted base. First, a counting cap: a depth-$d$ schedule whose layers
-each place at most $b$ gates across the cut can route at most $b\cdot d$ distinct bonds ---
-proved, not assumed (\lstinline|routed_card_le|, a \lstinline|card_biUnion| bound) --- and
-$\min(n, b\cdot d)$ is achieved by an explicit schedule. Second, causal reachability: bonds
+physics out of the trusted base. One is a counting cap: a depth-$d$ schedule whose layers
+each place at most $b$ gates across the cut can route at most $b\cdot d$ distinct bonds
+(proved, not assumed: \lstinline|routed_card_le|, a \lstinline|card_biUnion| bound), and
+$\min(n, b\cdot d)$ is achieved by an explicit schedule. The other is causal reachability: bonds
 are not abstract labels but qubit pairs that must lie within each other's depth-$d$
-lightcone. On a chain, the $i$-th nested cross-cut pair sits at distance $2i+1$ and is
-reachable exactly when $i < d$, witnessed by an explicit walk of that length; on a
+lightcone. On a chain, an explicit walk of length $2i+1$ joins the $i$-th nested cross-cut
+pair, placing it within the depth-$d$ lightcone whenever $i < d$ (\lstinline|bond_causal|;
+the converse (unreachability for $i \ge d$, a coupling-graph distance lower bound) is
+not formalized); on a
 two-dimensional chip the chain walks lift through the box-product structure row by row,
-giving a causally-realizable matching of size $\min(n/2, \sqrt{n}\,d)$ on square chips ---
-the $\mathrm{sweepCut}$ scale again. Together: deep brickwork circuits really do have the
-entangling capacity that turns the width floor into a rigid one. The concrete
-$(2{+}1)$-dimensional ABCD coupler schedule of the physical chip is a further fidelity
-step we have not formalized; what the rigidity certificate consumes --- the
-$\Omega(\min)$ matching scale and per-bond lightcone reachability --- is proved for 1D
-chains and 2D chips.
+giving a causally-realizable matching of size $\min(n/2, \sqrt{n}\,d)$ on square chips,
+the $\mathrm{sweepCut}$ scale again. Together these \emph{scope} the physical routing step:
+the coupling graphs of deep brickwork layouts contain cross-cut pairings of the required
+size, each within lightcone distance. Two caveats bound this claim. No
+circuit-dynamics model is formalized: ``a depth-$d$ circuit can entangle a pair within
+its lightcone'' is a modeling correspondence, and the walk theorems above are statements
+about coupling-graph distance. And the rigidity witnesses of \S\ref{sec:endtoend} do
+not consume these theorems: they take the block-aligned matching directly as data. The
+concrete $(2{+}1)$-dimensional ABCD coupler schedule of the physical chip is a further
+fidelity step we have not formalized.
 
 %% ===================================================================
 \section{Related Work}\label{sec:related}
@@ -977,15 +1038,22 @@ big-batch contraction~\cite{pan2022solving}, stem orders~\cite{huang2020classica
 multi-stem scheduling~\cite{swtnc2025}, and reuse-aware search~\cite{kalachev2021recursive}
 define the state of the art; treewidth estimates for circuit graphs go back to
 QuickBB-style heuristics~\cite{boixo2017simulation}. All quality judgments in this line are
-relative; none produces a certificate against the optimum. Our work is complementary: it
-does not find orders, it prices them.
+relative; none produces a certificate against the optimum. The one exception proves the
+rule: exhaustive dynamic programming returns guaranteed-optimal sequences for small
+networks~\cite{pfeifer2014faster}, but the guarantee rests on the search implementation and
+the method stops where the instances start to matter. Our work is complementary: it
+does not search for orders; it bounds from below the cost of the orders a search returns.
 
 \paragraph{Width theory.} The contraction--treewidth correspondence is
 Markov--Shi~\cite{markov2008simulating}; grid brambles are due to Seymour and
 Thomas~\cite{seymour1993graph}, with multidimensional grid values by
-Kozawa--Otachi--Yamazaki~\cite{kozawa2021treewidth} and the pathwidth--treewidth relation
-quantified by Groenland et al.~\cite{groenland2023tight}. Our contribution here is not new
-graph theory but its first certified form, engineered so that only interval Helly is
+Kozawa--Otachi--Yamazaki~\cite{kozawa2014treewidth} and the pathwidth--treewidth relation
+quantified by Groenland et al.~\cite{groenland2023tight}. On the solver side, exact-treewidth
+implementations in the PACE-challenge line now attach compact minor-based certificates to
+the lower bounds they compute~\cite{tamaki2022heuristic}; those certificates are validated
+by unverified code, which is precisely the trust gap our bramble validation closes. Our
+contribution here is not new graph theory but the first certified form of its
+pathwidth lower-bound machinery, engineered so that only interval Helly is
 needed.
 
 \paragraph{Escapes from the width paradigm.} Decision diagrams beat width on structured
@@ -994,49 +1062,64 @@ simulable~\cite{napp2022efficient}. Both shape our statements: the compression f
 explicitly \emph{generic}, and the regime hypothesis lives in the routing layer.
 
 \paragraph{Formalization.} Graph-theory-in-proof-assistant precedents include the Coq
-library of Doczkal and Pous~\cite{doczkal2020graph} (minors, treewidth two); on the tensor
-side, TNLean formalizes the fundamental theorem of matrix product states~\cite{tnlean2026}.
-Neither addresses contraction complexity; to our knowledge this is the first pathwidth
+library of Doczkal and Pous~\cite{doczkal2020graph} (minors, the treewidth-two
+characterization) and Dittmann's Isabelle/HOL tree decompositions~\cite{dittmann2016tree},
+which prove the treewidth of trees and of complete graphs; neither formalizes pathwidth,
+duality certificates for structured graphs, or any link to contraction. On the tensor
+side, TNLean formalizes the fundamental theorem of matrix product states~\cite{tnlean2026},
+again without contraction complexity. To our knowledge this is the first pathwidth
 lower-bound theory and the first TNCO development in any proof assistant. In spirit our
-certificates follow verified SAT/LP checking: search may be untrusted, validation is
-verified --- brambles are to width what dual solutions are to LP bounds.
+certificates follow verified SAT/LP checking, where cake\_lpr validates untrusted UNSAT
+proofs with a verified checker~\cite{tan2021cakelpr}: the search is untrusted, the
+validation is verified, and brambles play for width the role dual solutions play for LP
+bounds.
 
 %% ===================================================================
 \section{Limitations and Future Work}\label{sec:limits}
 
 Certificate scope, stated as claims a user may rely on. (1)~The unconditional floors
 quantify over stem (sweep) orders; the extension to arbitrary contraction trees is the
-$\pw=\Theta(\tw)$ lattice input, carried as an explicit hypothesis --- formalizing subtree
-Helly and tree decompositions would remove it, and is the natural next step. Today's
-certificate reads: no sweep-style order beats $54$; conditionally, no contraction tree
-beats $\Theta(54)$. (2)~The instantiated lattice is the deep-regime wire-chain spacetime
-grid; the $(2{+}1)$-dimensional chip-lattice bramble~\cite{kozawa2021treewidth} is future
-work, and for general irregular networks the framework already applies --- any bramble,
-however found, yields a certified floor --- so curating brambles for practical networks is
-a tooling problem, not a theory gap. (3)~\lstinline|orderCost| counts materialized
+$\pw=\Theta(\tw)$ lattice input, and the development contains no type of tree contraction
+orders: the conditional tree statement lives in prose only, and its named-\lstinline|Prop|
+form holds on our model vacuously (the order space is all stems). Formalizing subtree
+Helly and tree decompositions would make it a theorem, and is the natural next step. Today's
+certificate reads: no sweep-style order beats $54$; conditionally, and outside the
+formalization, no contraction tree beats $\Theta(54)$. (2)~The instantiated lattice is the deep-regime wire-chain spacetime
+grid; the $(2{+}1)$-dimensional chip-lattice bramble~\cite{kozawa2014treewidth} is future
+work, and for general irregular networks the framework already applies
+(any bramble, however found, yields a certified floor), so curating brambles for practical networks is
+a tooling problem rather than a theory gap. (3)~\lstinline|orderCost| counts materialized
 boundary-tensor entries; constant-factor FLOP models and slicing trade-offs sit above this
 floor (slicing exchanges memory for time, not total work). (4)~The compression floor is
 generic by design: structured instances (stabilizer, genuinely low-rank) can and should
 beat it, and concrete circuits over discrete gate sets are not covered by a
-proper-subvariety statement. (5)~The measure-zero corollary ($\Pr[\text{collapse}]=0$) is
+vanishing-set (generic) statement; it is also a separate certificate, stated outside the
+headline conjunction: no theorem composes it
+with the \lstinline|orderCost| floor, and the benchmark witness family is constant in the
+gate parameters (\S\ref{sec:endtoend}). (5)~The measure-zero corollary ($\Pr[\text{collapse}]=0$) is
 stated but not yet formalized. (6)~The identification of stem contraction orders with path
-decompositions (\S\ref{sec:background}), and of \lstinline|orderCost| with contraction
-work, is a modeling correspondence argued in prose; the formal order space \emph{is} the
-path decompositions. (7)~The empirical comparison (\S\ref{sec:empirical}) reports fixed search budgets, with a
+decompositions (\S\ref{sec:background}), of \lstinline|orderCost| with contraction
+work, and of the full $N\times N$ grid graph with the sparser gate-level network graph of a
+deep brickwork chain, are modeling correspondences argued in prose; the formal order space
+\emph{is} the path decompositions of the grid graph. (7)~The empirical comparison (\S\ref{sec:empirical}) reports fixed search budgets, with a
 sensitivity sweep at $128/512/4096$ repeats: the grid drifts close to within the
 conversion allowance as the budget grows, while the 2D-chip deficits persist ($+6$ to
-$+10$ at $4096$) --- observed gaps measure search quality at the stated budget, not limit
-behavior.
+$+10$ at $4096$); observed gaps measure search quality at the stated budget, not limit
+behavior. (8)~The routing scaffolding certifies one direction of the lightcone boundary:
+explicit walks witness reachability for $i < d$ (\lstinline|bond_causal|); the converse
+distance lower bound (unreachability for $i \ge d$) is not formalized.
 
 %% ===================================================================
 \section{Conclusion}\label{sec:conclusion}
 
-TNCO search now has an absolute yardstick: a machine-checked cost floor --- bramble dual
-certificates for width, an explicit cost semantics, and a generic no-compression theorem
-welding rank to cost --- with an axiom footprint of exactly \texttt{propext},
-\texttt{Classical.choice}, \texttt{Quot.sound}. On the calibration instance the yardstick
-is exact: the certified floor meets the explicit sweep at $54$, turning a heuristic
-solution into a provably optimal one. The road ahead is scope, not trust: tree orders via
+TNCO search now has an absolute yardstick: a machine-checked cost floor (bramble dual
+certificates for width, an explicit cost semantics, and, alongside them, a framework-level
+generic no-compression theorem on the rank side whose benchmark instantiation certifies
+capability only, \S\ref{sec:endtoend}), with an axiom footprint of exactly
+\texttt{propext}, \texttt{Classical.choice}, \texttt{Quot.sound}. On the calibration
+instance the yardstick is exact in width: the certified floor meets the explicit sweep at
+$54$, a machine-checked optimality proof among stem orders. The remaining work extends
+the scope of the certificates without touching their trusted base: tree orders via
 subtree Helly, chip lattices, and bramble libraries for the irregular networks where
 heuristics currently fly blind.
 
@@ -1049,16 +1132,22 @@ heuristics currently fly blind.
 \section{Artifact}\label{app:artifact}
 
 The artifact is an anonymized archive (link provided through the submission
-site) containing the full Lean development (\sys{}; name anonymized for review)
-and the empirical pipeline.
+site) containing the full Lean development (\sys{}; name anonymized for review,
+with the Lean namespace and module prefix in the archive likewise renamed to
+\sys{} by the packaging script) and the empirical pipeline.
 %% TODO before submission: upload the anonymized archive and insert the link.
 
-\paragraph{Lean development.} 17 modules, $\sim$2{,}700 lines, built with
+\paragraph{Lean development.} 18 modules (17 proof modules plus the axiom-audit
+module), $\sim$2{,}800 lines, built with
 \texttt{lake build} against Lean~4 and Mathlib, both pinned at v4.30.0 by the
 toolchain file and \texttt{lake-manifest.json}. The tree contains no
-\texttt{sorry} and no \texttt{axiom} declaration; a check script runs
-\texttt{\#print axioms} on every theorem cited in this paper and asserts that
-the output is exactly \texttt{[propext, Classical.choice, Quot.sound]}.
+\texttt{sorry} and no \texttt{axiom} declaration; a check module
+(\texttt{CheckAxioms.lean}, imported by the library root and
+hence built by \texttt{lake build}) collects the axiom dependencies of every
+theorem of the development cited in this paper and \emph{fails the build} unless
+each set is contained in \texttt{\{propext, Classical.choice, Quot.sound\}}.
+(The audit asserts containment --- the safe direction; the body's ``exactly''
+is the observed value for every cited theorem.)
 
 \paragraph{Paper-to-artifact map.} \S\ref{sec:bramble}: touching-bramble bound
 (\lstinline|pathwidth_ge_order_of_touching|, module \texttt{Bramble}) and
@@ -1077,8 +1166,8 @@ conjuncts (\lstinline|sycamore53_lower_bound| and companions,
 \texttt{Sycamore}).
 
 \paragraph{Empirical pipeline.} The cotengra driver scripts, Slurm batch files,
-and raw JSON results behind \S\ref{sec:empirical} --- the grid sweep, the RQC
-architectures, and the search-budget sensitivity runs --- with software and
+and raw JSON results behind \S\ref{sec:empirical} (the grid sweep, the RQC
+architectures, and the search-budget sensitivity runs), with software and
 hardware provenance recorded in the experiment README (cluster name withheld
 for double-blind review).
 
