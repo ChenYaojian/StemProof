@@ -137,7 +137,9 @@ On the `k × k` grid (`Fin k × Fin k`), the `k` "crosses" `cross i = row i ∪ 
 bramble: pairwise intersecting (at `(i,j)`), and of large order. We prove the asymptotically
 correct order bound `k ≤ 2 · order` by the elementary row/column-projection counting (any hitting
 set's row- and column-projections must together cover all `k` indices). This gives the `Θ` scale
-(the exact cross-bramble order is `k+1`, but `Θ(min(n,√n·d))` only needs order `= Θ(k)`). -/
+and the bound is sharp for this bramble: its exact order is `⌈k/2⌉` (one vertex `(i, j)` hits
+crosses `i` and `j` at once, so pairing up the indices yields a hitting set of that size). The
+exact grid floor `k + 2` needs the augmented bramble of `GridExact`, not sharper counting here. -/
 
 /-- The `i`-th cross of the `k × k` grid: row `i` together with column `i`. -/
 def cross (k : ℕ) (i : Fin k) : Finset (Fin k × Fin k) :=

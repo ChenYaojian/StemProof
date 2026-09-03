@@ -3,10 +3,11 @@
 
 Restates the no-rank-collapse content as a **structural theorem** rather than a probabilistic
 one: instead of "a Haar-random circuit has full Schmidt rank with high probability", we prove
-"*any* circuit family that can entangle across a cut has full Schmidt rank generically — for all
-gate parameters outside a measure-zero subvariety". Random circuits, Sycamore, and the Google
-supremacy circuits then become *corollaries* (verify they satisfy the structural hypothesis),
-avoiding the random-matrix `Pr(·)` analysis entirely.
+"*any* parametric tensor family that can entangle across a cut has full Schmidt rank for all
+gate parameters outside the vanishing set of one polynomial" (the measure-zero reading is
+prose, not formalized). Families that verify the structural hypothesis inherit the conclusion;
+concrete circuits over *discrete* gate sets are NOT covered by a proper-subvariety statement
+(see the paper's fidelity scope). The random-matrix `Pr(·)` analysis is avoided, not replaced.
 
 The engine is `LemmaB.generic_full_schmidt`: one full-rank parameter point upgrades to generic
 full rank. Here we name the hypothesis (`BulkEntangling`) and the conclusion
@@ -42,8 +43,13 @@ def BulkEntangling (e : ({i // p i} → Fin 2) ≃ ({i // ¬ p i} → Fin 2))
   ∃ θ₀ : ι → K, (squareFlatten p e (fun x => eval θ₀ (T x))).det ≠ 0
 
 /-- **Contraction rigidity at a cut.** The flattening's determinant is a nonzero polynomial and
-the evaluated flattening is full rank for all gate parameters outside its proper vanishing
-subvariety — i.e. no rank collapse, generically. -/
+the evaluated flattening is full rank for all gate parameters outside its vanishing set — i.e.
+no rank collapse, generically. NOTE (logical content): the second clause holds for *every* `T`
+by the unconditional identity `det_squareFlatten_map` (evaluation commutes with determinants),
+so `ContractionRigid` is equivalent to its first clause alone; the pointwise clause is kept
+because consumers (`ContractionRigid.no_compression`) use it in exactly that form. Properness
+of the vanishing set (nonempty complement) is `exists_nonsingular_of_det_ne_zero`, proved
+separately over an infinite field, and is not part of this certificate. -/
 def ContractionRigid (e : ({i // p i} → Fin 2) ≃ ({i // ¬ p i} → Fin 2))
     (T : QTensor I (MvPolynomial ι K)) : Prop :=
   (squareFlatten p e T).det ≠ 0 ∧
@@ -53,7 +59,10 @@ def ContractionRigid (e : ({i // p i} → Fin 2) ≃ ({i // ¬ p i} → Fin 2))
 /-- **Contraction Rigidity Theorem (structural).** Bulk entangling ⇒ contraction rigid:
 a circuit family capable of full Schmidt rank at *one* gate configuration is rigid for *generic*
 gate configurations. This is the structural replacement for Conjecture C — proved, no `sorry`,
-from `generic_full_schmidt` (Schwartz–Zippel genericity), with no probability. -/
+from `generic_full_schmidt` (Schwartz–Zippel genericity), with no probability. Its logical
+content is one line — a determinant nonzero at one evaluation is a nonzero polynomial (the
+pointwise clause of `ContractionRigid` is definitionally redundant; see the definition's
+note) — and the value is the packaging into the matching / no-compression interface below. -/
 theorem contraction_rigidity (e : ({i // p i} → Fin 2) ≃ ({i // ¬ p i} → Fin 2))
     {T : QTensor I (MvPolynomial ι K)} (h : BulkEntangling p e T) :
     ContractionRigid p e T := by

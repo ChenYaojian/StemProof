@@ -169,6 +169,12 @@ def gridModel (k : ℕ) : CircuitGraph where
   width := fun o => bagsWidth o.1
   IsStem := fun _ => True
   stem_exists := ⟨⟨sweepBags k, sweepBags_isPathDecomp k⟩, trivial⟩
+  -- `tw` and `IsLattice` are inert bookkeeping fields required by the `CircuitGraph`
+  -- record: no theorem cited in the paper consumes them (only the hypothesis-form
+  -- `MarkovShi` Prop mentions `tw`, and it is never supplied for this model).
+  -- WARNING: the value `k` below carries no semantics — this model's true bag-count
+  -- optimum is `k + 1` (`gridModel_cc_eq`); any future caller discharging `MarkovShi`
+  -- for this model must first fix this field to the intended convention.
   tw := k
   IsLattice := True
 

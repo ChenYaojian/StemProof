@@ -12,17 +12,21 @@ The keystone is that the cut the scale line identifies *carries a matching of th
 depth-`d` brickwork on a chip of spatial boundary `b` routes `min(n, b·d)` independent cross-cut
 bonds — accumulating `b` boundary bonds per layer, capped by the `n` available qubits. With a
 square chip (`b = ⌊√n⌋`) this is exactly `min(n, √n·d) = CorollaryD.sweepCut`. Feeding it to the
-rigidity theorem gives generic full Schmidt rank `2^{min(n,√n·d)}`, hence contraction cost
-`≥ 2^{min(n,√n·d)}`.
+rigidity theorem gives generic full Schmidt rank `2^{min(n,√n·d)}` at a cut of that size. (No
+theorem composes this rank-side certificate with the `orderCost` floor of `GridModel`; the two
+certificates are conjoined in `Sycamore`, not composed.)
 
 `min(n, √n·d)` handles the regimes automatically: **deep** (`d` large) ⇒ `min = n` (the Sycamore-53
 regime, `2^{53}`); **shallow** ⇒ `min = √n·d` (where Napp's simulability transition lives).
 
 What is **proved here** (standard axioms, no sorry): the routed-bond count equals
-`min(n, √n·d)`, and at that size the brickwork's cross-cut matching is contraction rigid.
+`min(n, √n·d)`, and at that *size* a cross-cut matching witness is contraction rigid — the
+witness (`chip_contractionRigid`) takes the block-aligned matching as data and consumes none of
+the schedule theorems below.
 What is **isolated** as the remaining geometric input: that a concrete brickwork physically places
 `b` fresh boundary-crossing entangling gates per layer (the bond-routing *achievability*); this is
-combinatorial gate-placement bookkeeping, not analysis.
+combinatorial gate-placement bookkeeping, not analysis — the schedule/lightcone theorems scope,
+but do not discharge, this physical routing step.
 -/
 import FieldStemProof.Lattice
 import FieldStemProof.CorollaryD
@@ -114,11 +118,11 @@ theorem routedBonds_eq_min (n d b : ℕ) :
       ∃ W : Schedule b d, W.routed.card = min (b * d) n := by
   exact ⟨fun W => W.routed_card_le, exists_schedule_routed_card b d n⟩
 
-/-- **Keystone (P1).** At the spacetime cut of size `min(n, √n·d)`, the depth-`d` brickwork's
-cross-cut matching is contraction rigid: there is a balanced cut on `2·min(n,√n·d)` wires with a
-cross-cut matching whose flattening has full Schmidt rank `2^{min(n,√n·d)}` for generic gate
-parameters (no rank collapse). This pins the matching size to the bramble scale, joining the two
-lower-bound lines. -/
+/-- **Size pinning (P1, capability form).** At the spacetime cut *size* `min(n, √n·d)` there is
+a balanced cut on `2·min(n,√n·d)` wires carrying a contraction-rigid witness family — an
+instantiation of `chip_contractionRigid` at `sweepCut n d`. The witness takes the block-aligned
+matching as data and consumes no brickwork/schedule structure; it pins the matching *size* to
+the bramble scale and certifies cut-size capability only. -/
 theorem deep_brickwork_contractionRigid (n d : ℕ) :
     ∃ (e : ({i // leftBlock i} → Fin 2) ≃ ({i // ¬ leftBlock i} → Fin 2))
       (T : QTensor (Fin (CorollaryD.sweepCut n d) ⊕ Fin (CorollaryD.sweepCut n d))
@@ -126,8 +130,9 @@ theorem deep_brickwork_contractionRigid (n d : ℕ) :
       ContractionRigid leftBlock e T :=
   ⟨_, chip_contractionRigid (K := ℂ) (ι := ℕ) (CorollaryD.sweepCut n d)⟩
 
-/-- The same, phrased in `routedBonds` form: the brickwork's routed matching (square chip) is
-contraction rigid at size `routedBonds n d ⌊√n⌋ = min(n, √n·d)`. -/
+/-- The same, phrased in `routedBonds` form: a contraction-rigid witness family exists at size
+`routedBonds n d ⌊√n⌋ = min(n, √n·d)` (again an instantiation at that size; no schedule is
+consumed). -/
 theorem brickwork_routes_rigid (n d : ℕ) :
     ∃ (e : ({i // leftBlock i} → Fin 2) ≃ ({i // ¬ leftBlock i} → Fin 2))
       (T : QTensor (Fin (routedBonds n d (Nat.sqrt n)) ⊕ Fin (routedBonds n d (Nat.sqrt n)))
@@ -138,8 +143,9 @@ theorem brickwork_routes_rigid (n d : ℕ) :
 
 /-! ## Sycamore-53: matching of size exactly 53 -/
 
-/-- For Sycamore-53 the routed matching has size `53` (deep regime: `min(53, ⌊√53⌋·20) = 53`), and
-it is contraction rigid — full Schmidt rank `2^53`, no rank collapse, generically. -/
+/-- For the Sycamore-53 parameters the cut size is `53` (deep regime: `min(53, ⌊√53⌋·20) = 53`),
+and a contraction-rigid witness family exists at that size — a capability witness, constant in
+the gate parameters; no rank claim about any concrete benchmark circuit. -/
 theorem sycamore53_matching_rigid :
     ∃ (e : ({i // leftBlock i} → Fin 2) ≃ ({i // ¬ leftBlock i} → Fin 2))
       (T : QTensor (Fin 53 ⊕ Fin 53) (MvPolynomial ℕ ℂ)),

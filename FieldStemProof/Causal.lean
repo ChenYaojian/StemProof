@@ -7,7 +7,9 @@ if they are within the lightcone, i.e. within coupling-graph distance `≤ 2d`. 
 depth cap from "`b·d` abstract gate slots" into a statement about the actual chip geometry.
 
 For the 1D chain (`pathGraph n`) cut at the midpoint `m`, the `i`-th cross-cut pair
-`(m-1-i, m+i)` has chain distance `2i+1`, so it is causally reachable within depth `d` iff `i < d`.
+`(m-1-i, m+i)` is joined by an explicit walk of length `2i+1`, so it is causally reachable
+within depth `d` whenever `i < d` (the converse — unreachability for `i ≥ d`, a coupling-graph
+distance lower bound — is not formalized).
 Hence a depth-`d` circuit can entangle the inner `min(m, d)` pairs — a causally-valid cross-cut
 matching of size `min(n/2, d)` (the `b = 1` case of `min(n, √n·d)`), now justified by an explicit
 bounded-length walk in the coupling graph rather than asserted.
@@ -57,8 +59,9 @@ theorem bond_causal (m d i : ℕ) (him : i < m) (hid : i < d) :
     _ = 2 * i + 1 := hp
     _ ≤ 2 * d := by omega
 
-/-- **Causally-valid matching size = `min(m, d) = min(n/2, d)`.** Exactly the pairs with `i < d`
-are within the depth-`d` lightcone (`bond_causal`); on a chain of `2m` qubits there are `m` cross-cut
+/-- **Causally-valid matching size = `min(m, d) = min(n/2, d)`.** The pairs with `i < d` are
+certified within the depth-`d` lightcone (`bond_causal`; one direction — the converse is not
+formalized); on a chain of `2m` qubits there are `m` cross-cut
 pairs total. So a depth-`d` 1D chain entangles `min(m, d)` cross-cut pairs — the causal version of
 `Brickwork.routedBonds (2m) d 1 = min(2m, d)` (boundary `b = 1`), now with each bond justified by an
 explicit lightcone walk rather than an abstract label. -/

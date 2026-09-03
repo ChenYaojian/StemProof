@@ -25,10 +25,9 @@ This is the "some point full rank ⇒ generic full rank" principle — the step 
 graph-theoretic width bound into a *tight* lower bound (no rank collapse). It is matrix-
 and parameter-agnostic, hence reusable for every intermediate flattening `M_i(θ)`.
 
-Still to bridge (needs the §1 definitions of `TN(C)`, cuts, flattenings):
-* instantiate the parameter type `σ` as the gate matrix entries and `M` as a maximal
-  square submatrix (size `2^{|cut_i|}`) of the flattening across `cut_i`;
-* supply the explicit max-entangling witness `v₀` realizing the lattice cut.
+The bridge onto tensor flattenings is below (`generic_full_schmidt`); the named
+hypothesis/conclusion packaging (`BulkEntangling` ⇒ `ContractionRigid`) and the
+matching-based discharge of the witness live in `Rigidity` / `Matching` / `Lattice`.
 -/
 import Mathlib
 import FieldStemProof.Defs
@@ -167,9 +166,11 @@ a proper subvariety. This is the "generic ⇒ no rank collapse" core of Lemma B 
 
 The remaining circuit-specific content: an intermediate tensor of an actual random circuit is
 NOT unconstrained — its entries are polynomials in the *local gate* parameters. That this
-constrained subfamily still avoids rank collapse is the realizability question:
-worst-case it does (a SWAP/Bell gate layer across the cut realizes `bellWitness`); average-case
-over Haar gates above the depth threshold is Conjecture C (open). -/
+constrained subfamily still avoids rank collapse is the realizability question: worst-case it
+does (a SWAP/Bell gate layer across the cut realizes `bellWitness`). The average-case question
+is reframed structurally in `Rigidity` (`BulkEntangling ⇒ ContractionRigid`), whose remaining
+hypothesis for a concrete architecture is a cross-cut matching (`Matching`/`Lattice`); concrete
+circuits over discrete gate sets stay outside any vanishing-set (generic) statement. -/
 
 omit [DecidableEq I] in
 /-- The universal tensor realizes the max-entangling witness at the parameter point

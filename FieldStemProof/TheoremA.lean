@@ -86,8 +86,9 @@ end CircuitGraph
 /-! ### Cited external inputs (named `Prop`s, supplied per model — NOT global axioms)
 
 These are **established, published theorems**, not conjectures — Mathlib simply lacks the
-treewidth/pathwidth theory to reprove them, and no importable formalization exists (the only
-machine-checked treewidth library is in Coq, Doczkal–Pous). They are recorded as named `Prop`s
+treewidth/pathwidth theory to reprove them, and no importable formalization exists (machine-checked
+treewidth basics exist in Coq (Doczkal–Pous) and Isabelle/HOL (Dittmann's AFP `Tree_Decomposition`);
+neither is importable into Lean, and neither covers pathwidth). They are recorded as named `Prop`s
 that a caller supplies *for the concrete model at hand* (via `optimal_stem_within_const`), where
 they are either discharged by computation (the Sycamore model, `Sycamore.lean`) or carried as an
 explicit hypothesis with its literature reference.
